@@ -27,6 +27,19 @@ CREATE TABLE IF NOT EXISTS investigation_notes (
   UNIQUE (finding_id, workflow_id)
 );
 
+-- ── access_requests ──────────────────────────────────────────────────────────
+-- Submitted by unauthenticated visitors from the login page. Reviewed by admins.
+CREATE TABLE IF NOT EXISTS access_requests (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          TEXT NOT NULL,
+  email         TEXT NOT NULL,
+  organization  TEXT,
+  reason        TEXT,
+  status        TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'approved', 'denied')),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── audit_trail ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_trail (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -55,9 +68,9 @@ CREATE TRIGGER set_updated_at
 
 -- ── auto-create analyst_profile on user signup ───────────────────────────────
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  INSERT INTO analyst_profiles (id, name, role)
+  INSERT INTO public.analyst_profiles (id, name, role)
   VALUES (
     NEW.id,
     COALESCE(
@@ -80,6 +93,21 @@ CREATE TRIGGER on_auth_user_created
 ALTER TABLE analyst_profiles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investigation_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_trail         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE access_requests     ENABLE ROW LEVEL SECURITY;
+
+-- access_requests: anyone (including anonymous visitors) can submit a request
+DROP POLICY IF EXISTS "access_requests_insert" ON access_requests;
+CREATE POLICY "access_requests_insert"
+  ON access_requests FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- access_requests: only authenticated analysts can read submitted requests
+DROP POLICY IF EXISTS "access_requests_select" ON access_requests;
+CREATE POLICY "access_requests_select"
+  ON access_requests FOR SELECT
+  TO authenticated
+  USING (true);
 
 -- analyst_profiles: authenticated users can read all profiles
 DROP POLICY IF EXISTS "analyst_profiles_select" ON analyst_profiles;

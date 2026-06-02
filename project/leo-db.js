@@ -92,9 +92,27 @@
     return data;
   }
 
+  async function requestAccess({ name, email, organization, reason }) {
+    const { error } = await client
+      .from("access_requests")
+      .insert({
+        name: name,
+        email: email,
+        organization: organization || null,
+        reason: reason || null,
+        status: "pending",
+      });
+    if (error) {
+      console.error("requestAccess error:", error);
+      return false;
+    }
+    return true;
+  }
+
   window.LEO_DB = {
     signIn,
     signOut,
+    requestAccess,
     getSession,
     onAuthChange,
     getProfile,
