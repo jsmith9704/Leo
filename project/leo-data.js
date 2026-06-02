@@ -300,5 +300,150 @@
     dimAvg: { information: 39, intent: 44, ownership: 58, action: 47, timing: 52, verification: 49 },
   };
 
-  window.LEO_DATA = { DIMS, WORKFLOWS, TIMELINE, FINDINGS, EVIDENCE, RECOMMENDATIONS, ROLLUP };
+  // ---- Failure archetypes -------------------------------------------
+  const ARCHETYPES = [
+    {
+      key: "borrowed-stability",
+      label: "Borrowed Stability",
+      icon: "shield",
+      desc: "The workflow appears stable because a downstream actor silently compensates for upstream failures. System status shows green while manual workarounds mask real degradation.",
+      signal: "Terminal status reached despite upstream gaps; informal compensations not in the audit trail.",
+    },
+    {
+      key: "human-middleware",
+      label: "Human Middleware",
+      icon: "route",
+      desc: "A person acts as an informal connector between two systems, carrying information or intent in memory rather than through a formal workflow path. When that person changes context, the connection breaks.",
+      signal: "Information transfer depends on individual recall or informal communication outside the documented system.",
+    },
+    {
+      key: "intent-drift",
+      label: "Intent Drift",
+      icon: "zap",
+      desc: "The original clinical intent — the 'why' behind a referral, order, or decision — is progressively lost or diluted as it passes through handoffs and system boundaries.",
+      signal: "Downstream actors cannot reproduce the original reasoning; structured fields carry less than the source encounter.",
+    },
+    {
+      key: "reconciliation-failure",
+      label: "Reconciliation Failure",
+      icon: "alert",
+      desc: "Two conflicting signals, priorities, or data points were encountered and never reconciled. No decision was made about which takes precedence; the contradiction persists silently in the record.",
+      signal: "Contradictory values coexist with no override justification, escalation, or decision event linking them.",
+    },
+    {
+      key: "ownership-failure",
+      label: "Ownership Failure",
+      icon: "user",
+      desc: "No individual or role has clear, active ownership of a task or decision. The work sits in a shared queue or is assumed to be someone else's responsibility — and nothing moves.",
+      signal: "next_owner: NULL; task not created; no acknowledgment event; multiple possible owners, none assigned.",
+    },
+  ];
+
+  // ---- Workspace data per finding ----------------------------------
+  const WORKSPACE = {
+    "F-01": {
+      contradiction: {
+        observed: "Consult note (May 28) addresses rate control only. No mention of anticoagulation in assessment, plan, or HPI.",
+        expected: "Encounter intent (May 04): \"decide on anticoagulation (CHA₂DS₂-VASc 4) — defer initiation pending specialist input.\"",
+        delta: "The anticoagulation decision was the referring PCP's primary clinical question. It was present in the encounter note, absent from the structured referral order, and never reached the specialist — who evaluated and documented without knowing the question existed.",
+      },
+      archetypes: [
+        { key: "intent-drift", confidence: 0.91,
+          rationale: "The clinical question 'should we anticoagulate?' was explicit in the encounter note but reduced to 'AFib eval' at the referral order boundary. Each system handoff stripped another layer of the original intent." },
+        { key: "human-middleware", confidence: 0.74,
+          rationale: "Dr. Alvarez may have assumed the cardiologist would infer the anticoagulation question from the diagnosis and CHA₂DS₂-VASc score — carrying intent informally rather than encoding it structurally." },
+      ],
+      verificationPath: [
+        { step: 1, action: "Review original encounter note (EV-101) — confirm anticoagulation language is present and unambiguous." },
+        { step: 2, action: "Check referral order structured fields (EV-102) — confirm 'anticoagulation' is absent from Reason and all free-text fields." },
+        { step: 3, action: "Review consult note (EV-107) in full — search assessment, plan, HPI, and any addenda for any anticoagulation mention." },
+        { step: 4, action: "Check for any in-basket messages, co-signature requests, or phone notes between Dr. Alvarez and Dr. Boone before or after May 28." },
+        { step: 5, action: "Review patient's current medication list — confirm no anticoagulant was started, indicating the decision remains unresolved." },
+      ],
+      affectedDims: ["intent", "information"],
+    },
+    "F-02": {
+      contradiction: {
+        observed: "Scheduling record (May 13): APPT class ROUTINE, date 05/28, lead time 24 days.",
+        expected: "Referral order (May 04): Priority URGENT — appointment within 7 days.",
+        delta: "The booking priority directly and objectively contradicts the referral order priority. The patient was seen 24 days after referral against a 7-day urgent target. No override justification, escalation, or reconciliation event exists in either system.",
+      },
+      archetypes: [
+        { key: "reconciliation-failure", confidence: 0.97,
+          rationale: "URGENT and ROUTINE are mutually exclusive priority classifications. Both values exist in the record simultaneously with no decision event linking or resolving them. This is an unreconciled contradiction." },
+        { key: "human-middleware", confidence: 0.68,
+          rationale: "The scheduler was the informal bridge between the order priority and the booking pool — but the scheduling interface did not surface the urgency flag, so the human connection failed silently." },
+      ],
+      verificationPath: [
+        { step: 1, action: "Confirm referral order (EV-102) priority field reads URGENT ≤7d — check for any amendment or correction after placement." },
+        { step: 2, action: "Confirm scheduling record (EV-106): appointment class ROUTINE, booked date 05/28, lead time 24 days." },
+        { step: 3, action: "Review scheduling system UI configuration for May 13 — confirm urgency indicator was not visible to the scheduler at booking time." },
+        { step: 4, action: "Search for any supervisor approval, override note, or patient-preference documentation that could justify ROUTINE booking." },
+        { step: 5, action: "Review telephony log for May 13 outreach calls — confirm whether urgency was communicated to the patient verbally." },
+      ],
+      affectedDims: ["action", "intent", "timing"],
+    },
+    "F-03": {
+      contradiction: {
+        observed: "Workflow audit (May 28 · 16:44): STATE consult_complete · next_owner: NULL · close_task: not_created · pcp_ack: none.",
+        expected: "After consult note signature, a loop-closure task should route to an owner and require PCP acknowledgment before the workflow closes.",
+        delta: "The referral loop was never formally closed. The system transitioned to 'consult_complete' without creating a next-owner task or PCP notification. Both the PCP and the patient remain without a resolved anticoagulation decision.",
+      },
+      archetypes: [
+        { key: "ownership-failure", confidence: 0.89,
+          rationale: "next_owner: NULL is unambiguous. The system completed its current state without assigning responsibility for the next action. Cardiology and the PCP practice each likely assume the other is handling closure." },
+        { key: "borrowed-stability", confidence: 0.61,
+          rationale: "WF-2287 shows status 'consult complete' — an apparently terminal, successful state. But the operational loop (PCP acknowledgment, anticoagulation decision, patient follow-up plan) remains entirely open." },
+      ],
+      verificationPath: [
+        { step: 1, action: "Check referral management system: confirm WF-2287 current state and next_owner field values in real time." },
+        { step: 2, action: "Check Dr. Alvarez's in-basket — confirm no consult result message, co-signature request, or result notification is pending or unread." },
+        { step: 3, action: "Review Cardiology Intake task queue — confirm no loop-closure or result-routing task exists for WF-2287." },
+        { step: 4, action: "Review EHR chart activity since May 28 — look for any PCP-authored note, addendum, or medication change referencing the consult." },
+      ],
+      affectedDims: ["ownership", "verification", "intent"],
+    },
+    "F-04": {
+      contradiction: {
+        observed: "Authorization opened 05/06 · approved 05/12 · elapsed 6d 6h. No urgent-window flag set at any point.",
+        expected: "Urgent referral target: appointment within 7 days of order placed May 04. With 6 days consumed in auth, less than 1 day remained for scheduling.",
+        delta: "The authorization system processed the request on its standard timeline with no awareness of the clinical urgency window. 'Normal' auth processing silently consumed the urgent scheduling window with no alert, escalation, or adaptive response.",
+      },
+      archetypes: [
+        { key: "borrowed-stability", confidence: 0.84,
+          rationale: "The authorization workflow operated normally — opened, processed, approved. No flags, no anomalies. But 'normal' authorization silently consumed the urgent scheduling window without any clinical urgency context." },
+        { key: "ownership-failure", confidence: 0.58,
+          rationale: "No person or role was watching the urgent-window clock during authorization. The system had no escalation path configured for urgent referrals approaching their scheduling deadline." },
+      ],
+      verificationPath: [
+        { step: 1, action: "Confirm auth log (EV-104): PA opened 05/06, approved 05/12, elapsed 6d 6h — check for any interim communication or expedite request." },
+        { step: 2, action: "Review referral management system: confirm the 7-day urgent target was visible to the auth team or system during processing." },
+        { step: 3, action: "Check auth portal configuration for this referral type — is there an urgent-window escalation rule? What threshold triggers it?" },
+        { step: 4, action: "Review scheduling system for any booking attempt before May 12 — confirm no pre-auth scheduling was attempted or was even possible." },
+      ],
+      affectedDims: ["timing"],
+    },
+    "F-05": {
+      contradiction: {
+        observed: "Workflow audit (May 28 · 16:44): pcp_ack: none. No read receipt, acknowledgment event, or co-signature request recorded since consult was filed.",
+        expected: "The referring provider should receive and acknowledge the consult result to formally close the information loop and confirm the clinical question was answered.",
+        delta: "The consult note has been in the chart since May 28 with no PCP-side acknowledgment event. Dr. Alvarez has no confirmed awareness of the consult outcome or the unresolved anticoagulation question.",
+      },
+      archetypes: [
+        { key: "borrowed-stability", confidence: 0.78,
+          rationale: "Workflow status shows 'consult_complete' — an apparently resolved state. But resolution was never verified from the referring provider's perspective. The system borrowed the appearance of closure." },
+        { key: "ownership-failure", confidence: 0.71,
+          rationale: "Neither the specialist, the referral coordinator, nor the system assigned accountability for the PCP notification step. The acknowledgment gap exists because no one owns it." },
+      ],
+      verificationPath: [
+        { step: 1, action: "Check Dr. Alvarez's in-basket — is the consult note routed for review, and if so, has it been opened?" },
+        { step: 2, action: "Review Cardiology Documentation routing rules — does a signed consult note auto-route to the referring provider?" },
+        { step: 3, action: "Check PCP encounter activity since May 28 — any note, medication change, or patient communication referencing the cardiology consult?" },
+        { step: 4, action: "Review referral system closure protocol — is PCP acknowledgment required before status transitions from 'consult_complete' to 'closed'?" },
+      ],
+      affectedDims: ["verification"],
+    },
+  };
+
+  window.LEO_DATA = { DIMS, WORKFLOWS, TIMELINE, FINDINGS, EVIDENCE, RECOMMENDATIONS, ROLLUP, ARCHETYPES, WORKSPACE };
 })();

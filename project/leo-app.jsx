@@ -84,13 +84,14 @@ function Topbar({ crumbs }) {
 }
 
 function App() {
-  // route: { name: 'list' | 'detail' | 'inv', wfId, findingId }
+  // route: { name: 'list' | 'detail' | 'inv' | 'workspace', wfId, findingId }
   const [route, setRoute] = useStateA({ name: "list" });
   const [t, setTweak] = useTweaks(LEO_TWEAK_DEFAULTS);
   useLeoTweaks(t);
 
   const openWorkflow = (wfId) => setRoute({ name: "detail", wfId });
   const openInvestigation = (findingId) => setRoute({ name: "inv", wfId: route.wfId || "WF-2287", findingId });
+  const openWorkspace = (findingId) => setRoute({ name: "workspace", wfId: route.wfId || "WF-2287", findingId });
   const goList = () => setRoute({ name: "list" });
 
   let crumbs, body, navView;
@@ -103,14 +104,23 @@ function App() {
     const wf = window.LEO_DATA.WORKFLOWS.find((w) => w.id === route.wfId);
     crumbs = [{ label: "Workflows", onClick: goList }, { label: wf ? wf.id : route.wfId }];
     body = <WorkflowDetail id={route.wfId} onInvestigate={openInvestigation} />;
-  } else {
+  } else if (route.name === "inv") {
     navView = "invq";
     crumbs = [
       { label: "Workflows", onClick: goList },
       { label: route.wfId, onClick: () => openWorkflow(route.wfId) },
       { label: "Investigation" },
     ];
-    body = <Investigation findingId={route.findingId} wfId={route.wfId} onBack={() => openWorkflow(route.wfId)} />;
+    body = <Investigation findingId={route.findingId} wfId={route.wfId} onBack={() => openWorkflow(route.wfId)} onWorkspace={openWorkspace} />;
+  } else {
+    navView = "invq";
+    crumbs = [
+      { label: "Workflows", onClick: goList },
+      { label: route.wfId, onClick: () => openWorkflow(route.wfId) },
+      { label: "Investigation", onClick: () => openInvestigation(route.findingId) },
+      { label: "Workspace" },
+    ];
+    body = <InvestigationWorkspace findingId={route.findingId} wfId={route.wfId} onInvestigation={() => openInvestigation(route.findingId)} />;
   }
 
   // sidebar nav: map some entries to list, detail-focus to deep workflow

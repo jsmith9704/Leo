@@ -25,7 +25,7 @@ function EvidenceCard({ ev, last }) {
   );
 }
 
-function Investigation({ findingId, wfId, onBack }) {
+function Investigation({ findingId, wfId, onBack, onWorkspace }) {
   const D = window.LEO_DATA;
   const findings = D.FINDINGS;
   const [activeId, setActive] = useStateI(findingId || findings[0].id);
@@ -47,6 +47,11 @@ function Investigation({ findingId, wfId, onBack }) {
           <DimChip dimKey={finding.dim} solid />
           <span className="muted mono" style={{ fontSize: 12, whiteSpace: "nowrap" }}>{finding.where}</span>
           <span className="muted" style={{ fontSize: 12.5 }}>confidence <b style={{ color: "var(--ink)" }}>{Math.round(finding.confidence * 100)}%</b></span>
+          {onWorkspace && (
+            <button className="btn primary" onClick={() => onWorkspace(activeId)} style={{ marginLeft: "auto" }}>
+              <Ic name="layers" /> Open Workspace
+            </button>
+          )}
         </div>
       </div>
 

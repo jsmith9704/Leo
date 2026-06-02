@@ -1,0 +1,243 @@
+/* LEO — App shell, navigation, routing */
+const {
+  useState: useStateA,
+  useEffect: useEffectA
+} = React;
+const LEO_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "Clinical blue",
+  "density": "regular",
+  "panelTone": "Slate"
+} /*EDITMODE-END*/;
+const ACCENT_HUES = {
+  "Clinical blue": 248,
+  "Teal": 196,
+  "Indigo": 286
+};
+const PANEL_TONES = {
+  Slate: {
+    bg: "0.215 0.018 262",
+    s: "0.255 0.02 262",
+    r: "0.30 0.022 262",
+    b: "0.36 0.022 262",
+    b2: "0.32 0.02 262"
+  },
+  Navy: {
+    bg: "0.205 0.032 256",
+    s: "0.245 0.032 256",
+    r: "0.295 0.034 256",
+    b: "0.355 0.03 256",
+    b2: "0.31 0.028 256"
+  },
+  Graphite: {
+    bg: "0.205 0.004 260",
+    s: "0.245 0.004 260",
+    r: "0.30 0.005 260",
+    b: "0.36 0.006 260",
+    b2: "0.32 0.005 260"
+  }
+};
+function useLeoTweaks(t) {
+  useEffectA(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--accent-h", ACCENT_HUES[t.accent] || 248);
+    root.dataset.density = t.density;
+    const p = PANEL_TONES[t.panelTone] || PANEL_TONES.Slate;
+    root.style.setProperty("--d-bg", `oklch(${p.bg})`);
+    root.style.setProperty("--d-surface", `oklch(${p.s})`);
+    root.style.setProperty("--d-raised", `oklch(${p.r})`);
+    root.style.setProperty("--d-border", `oklch(${p.b})`);
+    root.style.setProperty("--d-border-2", `oklch(${p.b2})`);
+  }, [t.accent, t.density, t.panelTone]);
+}
+function Sidebar({
+  view,
+  go
+}) {
+  const {
+    ROLLUP
+  } = window.LEO_DATA;
+  const item = (key, icon, label, count) => /*#__PURE__*/React.createElement("button", {
+    className: "nav-item" + (view === key ? " active" : ""),
+    onClick: () => go(key)
+  }, /*#__PURE__*/React.createElement(Ic, {
+    name: icon
+  }), label, count != null && /*#__PURE__*/React.createElement("span", {
+    className: "count"
+  }, count));
+  return /*#__PURE__*/React.createElement("aside", {
+    className: "sidebar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "brand"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "brand-mark"
+  }, "L"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "brand-name"
+  }, "LEO"), /*#__PURE__*/React.createElement("div", {
+    className: "brand-sub"
+  }, "EVIDENCE \xD7 OPS"))), /*#__PURE__*/React.createElement("nav", {
+    className: "nav"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "nav-label"
+  }, "Operations"), item("list", "grid", "Continuity overview"), item("list2", "flow", "Workflows", ROLLUP.monitored.toLocaleString()), item("invq", "search", "Investigations", ROLLUP.critical), item("pulse", "pulse", "Signals"), /*#__PURE__*/React.createElement("div", {
+    className: "nav-label"
+  }, "Governance"), item("rec", "target", "Recommendations"), item("dims", "layers", "Dimensions"), item("qi", "shield", "QI review")), /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-foot"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "user"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "avatar"
+  }, "DR"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "user-name"
+  }, "D. Reyes"), /*#__PURE__*/React.createElement("div", {
+    className: "user-role"
+  }, "Continuity analyst")))));
+}
+function Topbar({
+  crumbs
+}) {
+  return /*#__PURE__*/React.createElement("header", {
+    className: "topbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "crumbs"
+  }, crumbs.map((c, i) => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: i
+  }, i > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "sep"
+  }, "/"), c.onClick ? /*#__PURE__*/React.createElement("button", {
+    className: "crumb-btn",
+    onClick: c.onClick
+  }, c.label) : /*#__PURE__*/React.createElement("span", {
+    className: "crumb-cur"
+  }, c.label)))), /*#__PURE__*/React.createElement("div", {
+    className: "search"
+  }, /*#__PURE__*/React.createElement(Ic, {
+    name: "search"
+  }), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Search workflows, patients, owners\u2026"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn"
+  }, /*#__PURE__*/React.createElement(Ic, {
+    name: "bell"
+  })));
+}
+function App() {
+  // route: { name: 'list' | 'detail' | 'inv' | 'workspace', wfId, findingId }
+  const [route, setRoute] = useStateA({
+    name: "list"
+  });
+  const [t, setTweak] = useTweaks(LEO_TWEAK_DEFAULTS);
+  useLeoTweaks(t);
+  const openWorkflow = wfId => setRoute({
+    name: "detail",
+    wfId
+  });
+  const openInvestigation = findingId => setRoute({
+    name: "inv",
+    wfId: route.wfId || "WF-2287",
+    findingId
+  });
+  const openWorkspace = findingId => setRoute({
+    name: "workspace",
+    wfId: route.wfId || "WF-2287",
+    findingId
+  });
+  const goList = () => setRoute({
+    name: "list"
+  });
+  let crumbs, body, navView;
+  if (route.name === "list") {
+    navView = "list";
+    crumbs = [{
+      label: "Continuity overview"
+    }];
+    body = /*#__PURE__*/React.createElement(WorkflowsList, {
+      onOpen: openWorkflow
+    });
+  } else if (route.name === "detail") {
+    navView = "list2";
+    const wf = window.LEO_DATA.WORKFLOWS.find(w => w.id === route.wfId);
+    crumbs = [{
+      label: "Workflows",
+      onClick: goList
+    }, {
+      label: wf ? wf.id : route.wfId
+    }];
+    body = /*#__PURE__*/React.createElement(WorkflowDetail, {
+      id: route.wfId,
+      onInvestigate: openInvestigation
+    });
+  } else if (route.name === "inv") {
+    navView = "invq";
+    crumbs = [{
+      label: "Workflows",
+      onClick: goList
+    }, {
+      label: route.wfId,
+      onClick: () => openWorkflow(route.wfId)
+    }, {
+      label: "Investigation"
+    }];
+    body = /*#__PURE__*/React.createElement(Investigation, {
+      findingId: route.findingId,
+      wfId: route.wfId,
+      onBack: () => openWorkflow(route.wfId),
+      onWorkspace: openWorkspace
+    });
+  } else {
+    navView = "invq";
+    crumbs = [{
+      label: "Workflows",
+      onClick: goList
+    }, {
+      label: route.wfId,
+      onClick: () => openWorkflow(route.wfId)
+    }, {
+      label: "Investigation",
+      onClick: () => openInvestigation(route.findingId)
+    }, {
+      label: "Workspace"
+    }];
+    body = /*#__PURE__*/React.createElement(InvestigationWorkspace, {
+      findingId: route.findingId,
+      wfId: route.wfId,
+      onInvestigation: () => openInvestigation(route.findingId)
+    });
+  }
+
+  // sidebar nav: map some entries to list, detail-focus to deep workflow
+  const go = key => {
+    if (key === "list") goList();else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" || key === "pulse") goList();else if (key === "invq") openWorkflow("WF-2287");
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "app"
+  }, /*#__PURE__*/React.createElement(Sidebar, {
+    view: navView,
+    go: go
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "main"
+  }, /*#__PURE__*/React.createElement(Topbar, {
+    crumbs: crumbs
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "scroll"
+  }, body)), /*#__PURE__*/React.createElement(TweaksPanel, null, /*#__PURE__*/React.createElement(TweakSection, {
+    label: "Appearance"
+  }), /*#__PURE__*/React.createElement(TweakRadio, {
+    label: "Accent",
+    value: t.accent,
+    options: ["Clinical blue", "Teal", "Indigo"],
+    onChange: v => setTweak("accent", v)
+  }), /*#__PURE__*/React.createElement(TweakRadio, {
+    label: "Density",
+    value: t.density,
+    options: ["compact", "regular", "comfy"],
+    onChange: v => setTweak("density", v)
+  }), /*#__PURE__*/React.createElement(TweakSection, {
+    label: "Data panels"
+  }), /*#__PURE__*/React.createElement(TweakRadio, {
+    label: "Tone",
+    value: t.panelTone,
+    options: ["Slate", "Navy", "Graphite"],
+    onChange: v => setTweak("panelTone", v)
+  })));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
