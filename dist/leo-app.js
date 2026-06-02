@@ -51,7 +51,10 @@ function useLeoTweaks(t) {
 }
 function Sidebar({
   view,
-  go
+  go,
+  profile,
+  session,
+  onSignOut
 }) {
   const {
     ROLLUP
@@ -64,6 +67,9 @@ function Sidebar({
   }), label, count != null && /*#__PURE__*/React.createElement("span", {
     className: "count"
   }, count));
+  const displayName = profile ? profile.name : session ? session.user.email : "";
+  const displayRole = profile ? profile.role : "analyst";
+  const initials = displayName ? displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?";
   return /*#__PURE__*/React.createElement("aside", {
     className: "sidebar"
   }, /*#__PURE__*/React.createElement("div", {
@@ -86,11 +92,21 @@ function Sidebar({
     className: "user"
   }, /*#__PURE__*/React.createElement("div", {
     className: "avatar"
-  }, "DR"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, initials), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "user-name"
-  }, "D. Reyes"), /*#__PURE__*/React.createElement("div", {
+  }, displayName), /*#__PURE__*/React.createElement("div", {
     className: "user-role"
-  }, "Continuity analyst")))));
+  }, displayRole))), onSignOut && /*#__PURE__*/React.createElement("button", {
+    onClick: onSignOut,
+    className: "icon-btn",
+    title: "Sign out",
+    style: {
+      marginLeft: "auto",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(Ic, {
+    name: "arrowL"
+  }))));
 }
 function Topbar({
   crumbs
@@ -127,6 +143,55 @@ function App() {
   });
   const [t, setTweak] = useTweaks(LEO_TWEAK_DEFAULTS);
   useLeoTweaks(t);
+
+  // Auth state
+  const [session, setSession] = useStateA(null);
+  const [profile, setProfile] = useStateA(null);
+  const [authLoading, setAuthLoading] = useStateA(true);
+  useEffectA(() => {
+    // Load initial session
+    window.LEO_DB.getSession().then(async sess => {
+      setSession(sess);
+      if (sess) {
+        const prof = await window.LEO_DB.getProfile(sess.user.id);
+        setProfile(prof);
+      }
+      setAuthLoading(false);
+    }).catch(() => setAuthLoading(false));
+
+    // Subscribe to auth changes
+    const {
+      data: {
+        subscription
+      }
+    } = window.LEO_DB.onAuthChange(async sess => {
+      setSession(sess);
+      if (sess) {
+        const prof = await window.LEO_DB.getProfile(sess.user.id);
+        setProfile(prof);
+      } else {
+        setProfile(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  if (authLoading) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg)",
+        fontFamily: "var(--mono)",
+        color: "var(--ink-3)",
+        fontSize: 14
+      }
+    }, "Loading\u2026");
+  }
+  if (!session) {
+    return /*#__PURE__*/React.createElement(LoginScreen, null);
+  }
   const openWorkflow = wfId => setRoute({
     name: "detail",
     wfId
@@ -181,7 +246,8 @@ function App() {
       findingId: route.findingId,
       wfId: route.wfId,
       onBack: () => openWorkflow(route.wfId),
-      onWorkspace: openWorkspace
+      onWorkspace: openWorkspace,
+      user: profile
     });
   } else {
     navView = "invq";
@@ -200,7 +266,8 @@ function App() {
     body = /*#__PURE__*/React.createElement(InvestigationWorkspace, {
       findingId: route.findingId,
       wfId: route.wfId,
-      onInvestigation: () => openInvestigation(route.findingId)
+      onInvestigation: () => openInvestigation(route.findingId),
+      user: profile
     });
   }
 
@@ -212,7 +279,10 @@ function App() {
     className: "app"
   }, /*#__PURE__*/React.createElement(Sidebar, {
     view: navView,
-    go: go
+    go: go,
+    profile: profile,
+    session: session,
+    onSignOut: () => window.LEO_DB.signOut()
   }), /*#__PURE__*/React.createElement("div", {
     className: "main"
   }, /*#__PURE__*/React.createElement(Topbar, {

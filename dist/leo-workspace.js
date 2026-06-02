@@ -2,7 +2,8 @@
    Guides the analyst through contradiction review, archetype classification,
    verification steps, and documented resolution for a specific finding. */
 const {
-  useState: useStateW
+  useState: useStateW,
+  useEffect: useEffectW
 } = React;
 const ARCHETYPE_ICONS = {
   "borrowed-stability": "shield",
@@ -314,16 +315,12 @@ function ArchetypeCard({
   }, rationale));
 }
 
-// ── Verification path (interactive checklist) ────────────────────────────────
+// ── Verification path (fully controlled) ────────────────────────────────────
 function VerificationPath({
-  steps
+  steps,
+  verifiedSteps,
+  onToggle
 }) {
-  const [checked, setChecked] = useStateW(new Set());
-  const toggle = i => setChecked(prev => {
-    const n = new Set(prev);
-    if (n.has(i)) n.delete(i);else n.add(i);
-    return n;
-  });
   return /*#__PURE__*/React.createElement("div", {
     className: "panel",
     style: {
@@ -345,7 +342,7 @@ function VerificationPath({
     }
   }, steps.map((s, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => toggle(i),
+    onClick: () => onToggle(i),
     style: {
       display: "flex",
       gap: 10,
@@ -359,8 +356,8 @@ function VerificationPath({
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "ws-vcheck",
-    "data-checked": checked.has(i) ? "1" : "0"
-  }, checked.has(i) && /*#__PURE__*/React.createElement(Ic, {
+    "data-checked": verifiedSteps.has(i) ? "1" : "0"
+  }, verifiedSteps.has(i) && /*#__PURE__*/React.createElement(Ic, {
     name: "check",
     size: 10
   })), /*#__PURE__*/React.createElement("span", {
@@ -380,10 +377,10 @@ function VerificationPath({
     style: {
       fontSize: 12.5,
       lineHeight: 1.5,
-      color: checked.has(i) ? "var(--ink-3)" : "var(--ink)",
-      textDecoration: checked.has(i) ? "line-through" : "none"
+      color: verifiedSteps.has(i) ? "var(--ink-3)" : "var(--ink)",
+      textDecoration: verifiedSteps.has(i) ? "line-through" : "none"
     }
-  }, s.action))))), checked.size > 0 && /*#__PURE__*/React.createElement("div", {
+  }, s.action))))), verifiedSteps.size > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       padding: "7px 10px",
@@ -393,20 +390,20 @@ function VerificationPath({
       color: "var(--accent)",
       fontFamily: "var(--mono)"
     }
-  }, checked.size, " / ", steps.length, " steps verified"));
+  }, verifiedSteps.size, " / ", steps.length, " steps verified"));
 }
 
-// ── Documentation panel ──────────────────────────────────────────────────────
+// ── Documentation panel (fully controlled) ──────────────────────────────────
 function DocumentationPanel({
-  finding
+  finding,
+  notes,
+  onNotesChange,
+  resolution,
+  onResolutionChange,
+  saving,
+  savedInfo,
+  onSave
 }) {
-  const [notes, setNotes] = useStateW("");
-  const [resolution, setResolution] = useStateW("open");
-  const [saved, setSaved] = useStateW(false);
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
   return /*#__PURE__*/React.createElement("div", {
     className: "panel",
     style: {
@@ -439,7 +436,7 @@ function DocumentationPanel({
     }
   }, Object.entries(RESOLUTION_CFG).map(([key, cfg]) => /*#__PURE__*/React.createElement("button", {
     key: key,
-    onClick: () => setResolution(key),
+    onClick: () => onResolutionChange(key),
     style: {
       fontSize: 11,
       fontFamily: "var(--mono)",
@@ -467,7 +464,7 @@ function DocumentationPanel({
   }, "Investigation notes"), /*#__PURE__*/React.createElement("textarea", {
     className: "ws-textarea",
     value: notes,
-    onChange: e => setNotes(e.target.value),
+    onChange: e => onNotesChange(e.target.value),
     placeholder: "Document what you found, decisions made, who was notified, and next steps\u2026"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -477,14 +474,16 @@ function DocumentationPanel({
     }
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn primary",
-    onClick: handleSave,
+    onClick: onSave,
+    disabled: saving,
     style: {
       flex: 1,
-      justifyContent: "center"
+      justifyContent: "center",
+      opacity: saving ? 0.7 : 1
     }
   }, /*#__PURE__*/React.createElement(Ic, {
-    name: saved ? "check" : "doc"
-  }), saved ? "Saved" : "Save findings"), /*#__PURE__*/React.createElement("button", {
+    name: saving ? "pulse" : "doc"
+  }), saving ? "Saving…" : "Save findings"), /*#__PURE__*/React.createElement("button", {
     className: "btn",
     style: {
       flex: 1,
@@ -501,7 +500,14 @@ function DocumentationPanel({
     }
   }, /*#__PURE__*/React.createElement(Ic, {
     name: "shield"
-  }), " Add to QI review"), /*#__PURE__*/React.createElement("div", {
+  }), " Add to QI review"), savedInfo && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--accent)",
+      marginTop: 10,
+      fontFamily: "var(--mono)"
+    }
+  }, "Saved by ", savedInfo.name), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--ink-3)",
@@ -516,14 +522,73 @@ function DocumentationPanel({
 function InvestigationWorkspace({
   findingId,
   wfId,
-  onInvestigation
+  onInvestigation,
+  user
 }) {
   const D = window.LEO_DATA;
   const findings = D.FINDINGS;
   const [activeId, setActive] = useStateW(findingId || findings[0].id);
+
+  // Lifted notes state
+  const [notes, setNotes] = useStateW("");
+  const [resolution, setResolution] = useStateW("open");
+  const [verifiedSteps, setVerifiedSteps] = useStateW(new Set());
+  const [notesLoading, setNotesLoading] = useStateW(false);
+  const [saving, setSaving] = useStateW(false);
+  const [savedInfo, setSavedInfo] = useStateW(null);
   const finding = findings.find(f => f.id === activeId) || findings[0];
   const ws = D.WORKSPACE[finding.id];
   const evidence = finding.evidence.map(e => D.EVIDENCE[e]).filter(Boolean);
+
+  // Load notes from DB when activeId or wfId changes
+  useEffectW(() => {
+    if (!window.LEO_DB) return;
+    setNotesLoading(true);
+    setSavedInfo(null);
+    window.LEO_DB.loadNotes(activeId, wfId).then(row => {
+      if (row) {
+        setNotes(row.notes || "");
+        setResolution(row.resolution_status || "open");
+        setVerifiedSteps(new Set(Array.isArray(row.verification_steps) ? row.verification_steps : []));
+        if (row.last_updated_by_name) {
+          setSavedInfo({
+            name: row.last_updated_by_name
+          });
+        }
+      } else {
+        setNotes("");
+        setResolution("open");
+        setVerifiedSteps(new Set());
+      }
+      setNotesLoading(false);
+    }).catch(() => setNotesLoading(false));
+  }, [activeId, wfId]);
+  const handleToggleStep = i => {
+    setVerifiedSteps(prev => {
+      const n = new Set(prev);
+      if (n.has(i)) n.delete(i);else n.add(i);
+      return n;
+    });
+  };
+  const handleSave = async () => {
+    if (!window.LEO_DB) return;
+    setSaving(true);
+    const userName = user ? user.name : null;
+    const saved = await window.LEO_DB.saveNotes({
+      findingId: activeId,
+      workflowId: wfId,
+      notes,
+      resolutionStatus: resolution,
+      verificationSteps: verifiedSteps,
+      userName
+    });
+    setSaving(false);
+    if (saved) {
+      setSavedInfo({
+        name: saved.last_updated_by_name || userName || "Unknown"
+      });
+    }
+  };
   const archetypeCards = ws ? ws.archetypes.map(a => {
     const meta = D.ARCHETYPES.find(arch => arch.key === a.key);
     return meta ? {
@@ -659,9 +724,18 @@ function InvestigationWorkspace({
       fontFamily: "var(--mono)"
     }
   }, "Archetypes identify recurring failure patterns to guide systemic intervention beyond the immediate break.")), /*#__PURE__*/React.createElement(VerificationPath, {
-    steps: ws.verificationPath
+    steps: ws.verificationPath,
+    verifiedSteps: verifiedSteps,
+    onToggle: handleToggleStep
   }), /*#__PURE__*/React.createElement(DocumentationPanel, {
-    finding: finding
+    finding: finding,
+    notes: notes,
+    onNotesChange: setNotes,
+    resolution: resolution,
+    onResolutionChange: setResolution,
+    saving: saving,
+    savedInfo: savedInfo,
+    onSave: handleSave
   }))) : /*#__PURE__*/React.createElement("div", {
     className: "panel",
     style: {

@@ -1,7 +1,7 @@
 /* LEO — Investigation Workspace (Screen 4)
    Guides the analyst through contradiction review, archetype classification,
    verification steps, and documented resolution for a specific finding. */
-const { useState: useStateW } = React;
+const { useState: useStateW, useEffect: useEffectW } = React;
 
 const ARCHETYPE_ICONS = {
   "borrowed-stability":   "shield",
@@ -164,16 +164,8 @@ function ArchetypeCard({ arch, confidence, rationale }) {
   );
 }
 
-// ── Verification path (interactive checklist) ────────────────────────────────
-function VerificationPath({ steps }) {
-  const [checked, setChecked] = useStateW(new Set());
-  const toggle = (i) =>
-    setChecked((prev) => {
-      const n = new Set(prev);
-      if (n.has(i)) n.delete(i); else n.add(i);
-      return n;
-    });
-
+// ── Verification path (fully controlled) ────────────────────────────────────
+function VerificationPath({ steps, verifiedSteps, onToggle }) {
   return (
     <div className="panel" style={{ padding: "16px 17px" }}>
       <div className="section-label" style={{ marginTop: 0 }}>
@@ -181,13 +173,13 @@ function VerificationPath({ steps }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {steps.map((s, i) => (
-          <button key={i} onClick={() => toggle(i)} style={{
+          <button key={i} onClick={() => onToggle(i)} style={{
             display: "flex", gap: 10, alignItems: "flex-start",
             background: "none", border: "none", padding: "2px 0",
             textAlign: "left", cursor: "pointer", width: "100%",
           }}>
-            <span className="ws-vcheck" data-checked={checked.has(i) ? "1" : "0"}>
-              {checked.has(i) && <Ic name="check" size={10} />}
+            <span className="ws-vcheck" data-checked={verifiedSteps.has(i) ? "1" : "0"}>
+              {verifiedSteps.has(i) && <Ic name="check" size={10} />}
             </span>
             <span style={{ flex: 1, minWidth: 0, lineHeight: 1.5 }}>
               <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--ink-4)", marginRight: 6 }}>
@@ -195,8 +187,8 @@ function VerificationPath({ steps }) {
               </span>
               <span style={{
                 fontSize: 12.5, lineHeight: 1.5,
-                color: checked.has(i) ? "var(--ink-3)" : "var(--ink)",
-                textDecoration: checked.has(i) ? "line-through" : "none",
+                color: verifiedSteps.has(i) ? "var(--ink-3)" : "var(--ink)",
+                textDecoration: verifiedSteps.has(i) ? "line-through" : "none",
               }}>
                 {s.action}
               </span>
@@ -204,26 +196,17 @@ function VerificationPath({ steps }) {
           </button>
         ))}
       </div>
-      {checked.size > 0 && (
+      {verifiedSteps.size > 0 && (
         <div style={{ marginTop: 12, padding: "7px 10px", background: "var(--accent-3)", borderRadius: 6, fontSize: 11.5, color: "var(--accent)", fontFamily: "var(--mono)" }}>
-          {checked.size} / {steps.length} steps verified
+          {verifiedSteps.size} / {steps.length} steps verified
         </div>
       )}
     </div>
   );
 }
 
-// ── Documentation panel ──────────────────────────────────────────────────────
-function DocumentationPanel({ finding }) {
-  const [notes, setNotes] = useStateW("");
-  const [resolution, setResolution] = useStateW("open");
-  const [saved, setSaved] = useStateW(false);
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
+// ── Documentation panel (fully controlled) ──────────────────────────────────
+function DocumentationPanel({ finding, notes, onNotesChange, resolution, onResolutionChange, saving, savedInfo, onSave }) {
   return (
     <div className="panel" style={{ padding: "16px 17px" }}>
       <div className="section-label" style={{ marginTop: 0 }}>
@@ -234,7 +217,7 @@ function DocumentationPanel({ finding }) {
         <div style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-3)", marginBottom: 8 }}>Resolution status</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {Object.entries(RESOLUTION_CFG).map(([key, cfg]) => (
-            <button key={key} onClick={() => setResolution(key)} style={{
+            <button key={key} onClick={() => onResolutionChange(key)} style={{
               fontSize: 11, fontFamily: "var(--mono)", padding: "4px 11px", borderRadius: 6, cursor: "pointer",
               border: `1px solid ${resolution === key ? cfg.border : "var(--border)"}`,
               background: resolution === key ? cfg.bg : "var(--surface-2)",
@@ -253,15 +236,15 @@ function DocumentationPanel({ finding }) {
         <textarea
           className="ws-textarea"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Document what you found, decisions made, who was notified, and next steps…"
         />
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button className="btn primary" onClick={handleSave} style={{ flex: 1, justifyContent: "center" }}>
-          <Ic name={saved ? "check" : "doc"} />
-          {saved ? "Saved" : "Save findings"}
+        <button className="btn primary" onClick={onSave} disabled={saving} style={{ flex: 1, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
+          <Ic name={saving ? "pulse" : "doc"} />
+          {saving ? "Saving…" : "Save findings"}
         </button>
         <button className="btn" style={{ flex: 1, justifyContent: "center" }}>
           <Ic name="route" /> Route for review
@@ -271,6 +254,12 @@ function DocumentationPanel({ finding }) {
         <Ic name="shield" /> Add to QI review
       </button>
 
+      {savedInfo && (
+        <div style={{ fontSize: 11, color: "var(--accent)", marginTop: 10, fontFamily: "var(--mono)" }}>
+          Saved by {savedInfo.name}
+        </div>
+      )}
+
       <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 13, lineHeight: 1.5, fontFamily: "var(--mono)" }}>
         Findings are logged to the workflow audit trail with analyst attribution and timestamp.
       </div>
@@ -279,14 +268,70 @@ function DocumentationPanel({ finding }) {
 }
 
 // ── Main workspace view ──────────────────────────────────────────────────────
-function InvestigationWorkspace({ findingId, wfId, onInvestigation }) {
+function InvestigationWorkspace({ findingId, wfId, onInvestigation, user }) {
   const D = window.LEO_DATA;
   const findings = D.FINDINGS;
   const [activeId, setActive] = useStateW(findingId || findings[0].id);
 
+  // Lifted notes state
+  const [notes, setNotes] = useStateW("");
+  const [resolution, setResolution] = useStateW("open");
+  const [verifiedSteps, setVerifiedSteps] = useStateW(new Set());
+  const [notesLoading, setNotesLoading] = useStateW(false);
+  const [saving, setSaving] = useStateW(false);
+  const [savedInfo, setSavedInfo] = useStateW(null);
+
   const finding = findings.find((f) => f.id === activeId) || findings[0];
   const ws = D.WORKSPACE[finding.id];
   const evidence = finding.evidence.map((e) => D.EVIDENCE[e]).filter(Boolean);
+
+  // Load notes from DB when activeId or wfId changes
+  useEffectW(() => {
+    if (!window.LEO_DB) return;
+    setNotesLoading(true);
+    setSavedInfo(null);
+    window.LEO_DB.loadNotes(activeId, wfId).then((row) => {
+      if (row) {
+        setNotes(row.notes || "");
+        setResolution(row.resolution_status || "open");
+        setVerifiedSteps(new Set(Array.isArray(row.verification_steps) ? row.verification_steps : []));
+        if (row.last_updated_by_name) {
+          setSavedInfo({ name: row.last_updated_by_name });
+        }
+      } else {
+        setNotes("");
+        setResolution("open");
+        setVerifiedSteps(new Set());
+      }
+      setNotesLoading(false);
+    }).catch(() => setNotesLoading(false));
+  }, [activeId, wfId]);
+
+  const handleToggleStep = (i) => {
+    setVerifiedSteps((prev) => {
+      const n = new Set(prev);
+      if (n.has(i)) n.delete(i); else n.add(i);
+      return n;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!window.LEO_DB) return;
+    setSaving(true);
+    const userName = user ? user.name : null;
+    const saved = await window.LEO_DB.saveNotes({
+      findingId: activeId,
+      workflowId: wfId,
+      notes,
+      resolutionStatus: resolution,
+      verificationSteps: verifiedSteps,
+      userName,
+    });
+    setSaving(false);
+    if (saved) {
+      setSavedInfo({ name: saved.last_updated_by_name || userName || "Unknown" });
+    }
+  };
 
   const archetypeCards = ws
     ? ws.archetypes
@@ -366,9 +411,22 @@ function InvestigationWorkspace({ findingId, wfId, onInvestigation }) {
               </div>
             </div>
 
-            <VerificationPath steps={ws.verificationPath} />
+            <VerificationPath
+              steps={ws.verificationPath}
+              verifiedSteps={verifiedSteps}
+              onToggle={handleToggleStep}
+            />
 
-            <DocumentationPanel finding={finding} />
+            <DocumentationPanel
+              finding={finding}
+              notes={notes}
+              onNotesChange={setNotes}
+              resolution={resolution}
+              onResolutionChange={setResolution}
+              saving={saving}
+              savedInfo={savedInfo}
+              onSave={handleSave}
+            />
           </div>
         </div>
       ) : (

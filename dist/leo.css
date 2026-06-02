@@ -416,6 +416,16 @@ tbody tr:last-child td { border-bottom: none; }
 .ws-textarea:focus { border-color: var(--accent); background: var(--surface); }
 .ws-textarea::placeholder { color: var(--ink-4); }
 
+/* Input field (login form) */
+.leo-input {
+  width: 100%; height: 38px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink);
+  background: var(--surface-2); outline: none; box-sizing: border-box;
+  transition: border-color .12s;
+}
+.leo-input:focus { border-color: var(--accent); background: var(--surface); }
+
 /* responsive-ish */
 @media (max-width: 1140px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
