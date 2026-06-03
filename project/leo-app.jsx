@@ -54,6 +54,7 @@ function Sidebar({ view, go, profile, session, onSignOut }) {
       <nav className="nav">
         <div className="nav-label">Operations</div>
         {item("list", "grid", "Continuity overview")}
+        {item("analyze", "spark", "Analyze case")}
         {item("list2", "flow", "Workflows", ROLLUP.monitored.toLocaleString())}
         {item("invq", "search", "Investigations", ROLLUP.critical)}
         {item("pulse", "pulse", "Signals")}
@@ -104,7 +105,7 @@ function Topbar({ crumbs }) {
 }
 
 function App() {
-  // route: { name: 'list' | 'detail' | 'inv' | 'workspace', wfId, findingId }
+  // route: { name: 'list' | 'detail' | 'inv' | 'workspace' | 'analyze' | 'case', wfId, findingId, caseId }
   const [route, setRoute] = useStateA({ name: "list" });
   const [t, setTweak] = useTweaks(LEO_TWEAK_DEFAULTS);
   useLeoTweaks(t);
@@ -157,6 +158,8 @@ function App() {
   const openWorkflow = (wfId) => setRoute({ name: "detail", wfId });
   const openInvestigation = (findingId) => setRoute({ name: "inv", wfId: route.wfId || "WF-2287", findingId });
   const openWorkspace = (findingId) => setRoute({ name: "workspace", wfId: route.wfId || "WF-2287", findingId });
+  const goAnalyze = () => setRoute({ name: "analyze" });
+  const openCase = (caseId) => setRoute({ name: "case", caseId });
   const goList = () => setRoute({ name: "list" });
 
   let crumbs, body, navView;
@@ -177,6 +180,14 @@ function App() {
       { label: "Investigation" },
     ];
     body = <Investigation findingId={route.findingId} wfId={route.wfId} onBack={() => openWorkflow(route.wfId)} onWorkspace={openWorkspace} user={profile} />;
+  } else if (route.name === "analyze") {
+    navView = "analyze";
+    crumbs = [{ label: "Analyze case" }];
+    body = <AnalyzeCase onOpenCase={openCase} user={profile} />;
+  } else if (route.name === "case") {
+    navView = "analyze";
+    crumbs = [{ label: "Analyze case", onClick: goAnalyze }, { label: "Analysis" }];
+    body = <AnalyzedCase caseId={route.caseId} onBack={goAnalyze} />;
   } else {
     navView = "invq";
     crumbs = [
@@ -191,6 +202,7 @@ function App() {
   // sidebar nav: map some entries to list, detail-focus to deep workflow
   const go = (key) => {
     if (key === "list") goList();
+    else if (key === "analyze") goAnalyze();
     else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" || key === "pulse") goList();
     else if (key === "invq") openWorkflow("WF-2287");
   };

@@ -84,7 +84,7 @@ function Sidebar({
     className: "nav"
   }, /*#__PURE__*/React.createElement("div", {
     className: "nav-label"
-  }, "Operations"), item("list", "grid", "Continuity overview"), item("list2", "flow", "Workflows", ROLLUP.monitored.toLocaleString()), item("invq", "search", "Investigations", ROLLUP.critical), item("pulse", "pulse", "Signals"), /*#__PURE__*/React.createElement("div", {
+  }, "Operations"), item("list", "grid", "Continuity overview"), item("analyze", "spark", "Analyze case"), item("list2", "flow", "Workflows", ROLLUP.monitored.toLocaleString()), item("invq", "search", "Investigations", ROLLUP.critical), item("pulse", "pulse", "Signals"), /*#__PURE__*/React.createElement("div", {
     className: "nav-label"
   }, "Governance"), item("rec", "target", "Recommendations"), item("dims", "layers", "Dimensions"), item("qi", "shield", "QI review")), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-foot"
@@ -137,7 +137,7 @@ function Topbar({
   })));
 }
 function App() {
-  // route: { name: 'list' | 'detail' | 'inv' | 'workspace', wfId, findingId }
+  // route: { name: 'list' | 'detail' | 'inv' | 'workspace' | 'analyze' | 'case', wfId, findingId, caseId }
   const [route, setRoute] = useStateA({
     name: "list"
   });
@@ -206,6 +206,13 @@ function App() {
     wfId: route.wfId || "WF-2287",
     findingId
   });
+  const goAnalyze = () => setRoute({
+    name: "analyze"
+  });
+  const openCase = caseId => setRoute({
+    name: "case",
+    caseId
+  });
   const goList = () => setRoute({
     name: "list"
   });
@@ -249,6 +256,27 @@ function App() {
       onWorkspace: openWorkspace,
       user: profile
     });
+  } else if (route.name === "analyze") {
+    navView = "analyze";
+    crumbs = [{
+      label: "Analyze case"
+    }];
+    body = /*#__PURE__*/React.createElement(AnalyzeCase, {
+      onOpenCase: openCase,
+      user: profile
+    });
+  } else if (route.name === "case") {
+    navView = "analyze";
+    crumbs = [{
+      label: "Analyze case",
+      onClick: goAnalyze
+    }, {
+      label: "Analysis"
+    }];
+    body = /*#__PURE__*/React.createElement(AnalyzedCase, {
+      caseId: route.caseId,
+      onBack: goAnalyze
+    });
   } else {
     navView = "invq";
     crumbs = [{
@@ -273,7 +301,7 @@ function App() {
 
   // sidebar nav: map some entries to list, detail-focus to deep workflow
   const go = key => {
-    if (key === "list") goList();else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" || key === "pulse") goList();else if (key === "invq") openWorkflow("WF-2287");
+    if (key === "list") goList();else if (key === "analyze") goAnalyze();else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" || key === "pulse") goList();else if (key === "invq") openWorkflow("WF-2287");
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "app"

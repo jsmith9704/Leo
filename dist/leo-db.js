@@ -109,6 +109,38 @@
     return true;
   }
 
+  async function analyzeCase(caseText, structured) {
+    const { data, error } = await client.functions.invoke("analyze-case", {
+      body: { caseText: caseText, structured: structured || null },
+    });
+    if (error) {
+      // functions.invoke surfaces non-2xx as an error; try to read the body message.
+      let msg = error.message || "Analysis failed.";
+      try {
+        const ctx = error.context && (await error.context.json());
+        if (ctx && ctx.error) msg = ctx.error;
+      } catch (_) { /* ignore */ }
+      throw new Error(msg);
+    }
+    if (data && data.error) throw new Error(data.error);
+    return data.case;
+  }
+
+  async function loadCases() {
+    const { data, error } = await client
+      .from("cases")
+      .select("id, title, context, overall_risk, status, submitted_by_name, created_at")
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return data;
+  }
+
+  async function loadCase(id) {
+    const { data, error } = await client.from("cases").select("*").eq("id", id).single();
+    if (error) return null;
+    return data;
+  }
+
   window.LEO_DB = {
     signIn,
     signOut,
@@ -118,5 +150,8 @@
     getProfile,
     loadNotes,
     saveNotes,
+    analyzeCase,
+    loadCases,
+    loadCase,
   };
 })();

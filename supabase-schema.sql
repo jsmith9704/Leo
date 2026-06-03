@@ -40,6 +40,22 @@ CREATE TABLE IF NOT EXISTS access_requests (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ── cases (LEO-analyzed submitted cases) ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS cases (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title              TEXT NOT NULL DEFAULT 'Untitled case',
+  context            TEXT,
+  raw_text           TEXT NOT NULL,
+  structured         TEXT,
+  analysis           JSONB NOT NULL DEFAULT '{}',
+  overall_risk       INTEGER,
+  status             TEXT NOT NULL DEFAULT 'complete'
+    CHECK (status IN ('analyzing', 'complete', 'failed')),
+  submitted_by       UUID REFERENCES analyst_profiles(id) ON DELETE SET NULL,
+  submitted_by_name  TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── audit_trail ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_trail (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -94,6 +110,21 @@ ALTER TABLE analyst_profiles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investigation_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_trail         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE access_requests     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cases               ENABLE ROW LEVEL SECURITY;
+
+-- cases: authenticated analysts can read all analyzed cases
+DROP POLICY IF EXISTS "cases_select" ON cases;
+CREATE POLICY "cases_select"
+  ON cases FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- cases: authenticated analysts can insert cases (the edge function runs as the user)
+DROP POLICY IF EXISTS "cases_insert" ON cases;
+CREATE POLICY "cases_insert"
+  ON cases FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
 
 -- access_requests: anyone (including anonymous visitors) can submit a request
 DROP POLICY IF EXISTS "access_requests_insert" ON access_requests;
