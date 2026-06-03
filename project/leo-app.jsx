@@ -137,7 +137,9 @@ function App() {
   const [session, setSession] = useStateA(null);
   const [profile, setProfile] = useStateA(null);
   const [authLoading, setAuthLoading] = useStateA(true);
-  const [demoMode, setDemoMode] = useStateA(false); // public demo: no session, read-only
+  // Public demo is the default front door: visitors land in the read-only synthetic
+  // prototype with no login wall. Login still reachable via the "Sign in" affordance.
+  const [demoMode, setDemoMode] = useStateA(true);
 
   useEffectA(() => {
     // Load initial session
