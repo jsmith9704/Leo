@@ -197,12 +197,13 @@ function RequestAccessForm({ onBack }) {
   );
 }
 
-function LoginScreen() {
+function LoginScreen({ onEnterDemo }) {
   const [mode, setMode] = useStateLogin("signin"); // "signin" | "request"
 
   return (
     <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 16,
       background: "var(--bg)",
     }}>
       <div style={AUTH_CARD}>
@@ -211,6 +212,16 @@ function LoginScreen() {
           ? <SignInForm onRequestAccess={() => setMode("request")} />
           : <RequestAccessForm onBack={() => setMode("signin")} />}
       </div>
+      {onEnterDemo && (
+        <div style={{ width: 360, textAlign: "center" }}>
+          <button onClick={onEnterDemo} className="btn" style={{ width: "100%", justifyContent: "center" }}>
+            <Ic name="grid" size={14} /> Explore the public demo
+          </button>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 9, fontFamily: "var(--mono)", lineHeight: 1.5 }}>
+            No account needed · synthetic sample data · read-only
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -402,7 +402,8 @@ function DocumentationPanel({
   onResolutionChange,
   saving,
   savedInfo,
-  onSave
+  onSave,
+  demo
 }) {
   return /*#__PURE__*/React.createElement("div", {
     className: "panel",
@@ -475,32 +476,47 @@ function DocumentationPanel({
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn primary",
     onClick: onSave,
-    disabled: saving,
+    disabled: saving || demo,
     style: {
       flex: 1,
       justifyContent: "center",
-      opacity: saving ? 0.7 : 1
+      opacity: saving || demo ? 0.6 : 1,
+      cursor: demo ? "not-allowed" : "pointer"
     }
   }, /*#__PURE__*/React.createElement(Ic, {
-    name: saving ? "pulse" : "doc"
-  }), saving ? "Saving…" : "Save findings"), /*#__PURE__*/React.createElement("button", {
+    name: saving ? "pulse" : demo ? "shield" : "doc"
+  }), demo ? "Pilot access required" : saving ? "Saving…" : "Save findings"), /*#__PURE__*/React.createElement("button", {
     className: "btn",
+    disabled: demo,
     style: {
       flex: 1,
-      justifyContent: "center"
+      justifyContent: "center",
+      opacity: demo ? 0.6 : 1,
+      cursor: demo ? "not-allowed" : "pointer"
     }
   }, /*#__PURE__*/React.createElement(Ic, {
     name: "route"
   }), " Route for review")), /*#__PURE__*/React.createElement("button", {
     className: "btn",
+    disabled: demo,
     style: {
       width: "100%",
       justifyContent: "center",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      opacity: demo ? 0.6 : 1,
+      cursor: demo ? "not-allowed" : "pointer"
     }
   }, /*#__PURE__*/React.createElement(Ic, {
     name: "shield"
-  }), " Add to QI review"), savedInfo && /*#__PURE__*/React.createElement("div", {
+  }), " Add to QI review"), demo && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--ink-3)",
+      marginTop: 10,
+      lineHeight: 1.5,
+      fontFamily: "var(--mono)"
+    }
+  }, "Saving and routing are disabled in the public demo. Request pilot access to document and persist findings."), savedInfo && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--accent)",
@@ -523,7 +539,8 @@ function InvestigationWorkspace({
   findingId,
   wfId,
   onInvestigation,
-  user
+  user,
+  demo
 }) {
   const D = window.LEO_DATA;
   const findings = D.FINDINGS;
@@ -542,7 +559,7 @@ function InvestigationWorkspace({
 
   // Load notes from DB when activeId or wfId changes
   useEffectW(() => {
-    if (!window.LEO_DB) return;
+    if (!window.LEO_DB || demo) return; // public demo: notes are not persisted
     setNotesLoading(true);
     setSavedInfo(null);
     window.LEO_DB.loadNotes(activeId, wfId).then(row => {
@@ -571,7 +588,7 @@ function InvestigationWorkspace({
     });
   };
   const handleSave = async () => {
-    if (!window.LEO_DB) return;
+    if (!window.LEO_DB || demo) return;
     setSaving(true);
     const userName = user ? user.name : null;
     const saved = await window.LEO_DB.saveNotes({
@@ -735,7 +752,8 @@ function InvestigationWorkspace({
     onResolutionChange: setResolution,
     saving: saving,
     savedInfo: savedInfo,
-    onSave: handleSave
+    onSave: handleSave,
+    demo: demo
   }))) : /*#__PURE__*/React.createElement("div", {
     className: "panel",
     style: {

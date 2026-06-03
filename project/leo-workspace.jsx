@@ -206,7 +206,7 @@ function VerificationPath({ steps, verifiedSteps, onToggle }) {
 }
 
 // ── Documentation panel (fully controlled) ──────────────────────────────────
-function DocumentationPanel({ finding, notes, onNotesChange, resolution, onResolutionChange, saving, savedInfo, onSave }) {
+function DocumentationPanel({ finding, notes, onNotesChange, resolution, onResolutionChange, saving, savedInfo, onSave, demo }) {
   return (
     <div className="panel" style={{ padding: "16px 17px" }}>
       <div className="section-label" style={{ marginTop: 0 }}>
@@ -242,17 +242,24 @@ function DocumentationPanel({ finding, notes, onNotesChange, resolution, onResol
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button className="btn primary" onClick={onSave} disabled={saving} style={{ flex: 1, justifyContent: "center", opacity: saving ? 0.7 : 1 }}>
-          <Ic name={saving ? "pulse" : "doc"} />
-          {saving ? "Saving…" : "Save findings"}
+        <button className="btn primary" onClick={onSave} disabled={saving || demo}
+          style={{ flex: 1, justifyContent: "center", opacity: (saving || demo) ? 0.6 : 1, cursor: demo ? "not-allowed" : "pointer" }}>
+          <Ic name={saving ? "pulse" : (demo ? "shield" : "doc")} />
+          {demo ? "Pilot access required" : (saving ? "Saving…" : "Save findings")}
         </button>
-        <button className="btn" style={{ flex: 1, justifyContent: "center" }}>
+        <button className="btn" disabled={demo} style={{ flex: 1, justifyContent: "center", opacity: demo ? 0.6 : 1, cursor: demo ? "not-allowed" : "pointer" }}>
           <Ic name="route" /> Route for review
         </button>
       </div>
-      <button className="btn" style={{ width: "100%", justifyContent: "center", boxSizing: "border-box" }}>
+      <button className="btn" disabled={demo} style={{ width: "100%", justifyContent: "center", boxSizing: "border-box", opacity: demo ? 0.6 : 1, cursor: demo ? "not-allowed" : "pointer" }}>
         <Ic name="shield" /> Add to QI review
       </button>
+
+      {demo && (
+        <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 10, lineHeight: 1.5, fontFamily: "var(--mono)" }}>
+          Saving and routing are disabled in the public demo. Request pilot access to document and persist findings.
+        </div>
+      )}
 
       {savedInfo && (
         <div style={{ fontSize: 11, color: "var(--accent)", marginTop: 10, fontFamily: "var(--mono)" }}>
@@ -268,7 +275,7 @@ function DocumentationPanel({ finding, notes, onNotesChange, resolution, onResol
 }
 
 // ── Main workspace view ──────────────────────────────────────────────────────
-function InvestigationWorkspace({ findingId, wfId, onInvestigation, user }) {
+function InvestigationWorkspace({ findingId, wfId, onInvestigation, user, demo }) {
   const D = window.LEO_DATA;
   const findings = D.FINDINGS;
   const [activeId, setActive] = useStateW(findingId || findings[0].id);
@@ -287,7 +294,7 @@ function InvestigationWorkspace({ findingId, wfId, onInvestigation, user }) {
 
   // Load notes from DB when activeId or wfId changes
   useEffectW(() => {
-    if (!window.LEO_DB) return;
+    if (!window.LEO_DB || demo) return; // public demo: notes are not persisted
     setNotesLoading(true);
     setSavedInfo(null);
     window.LEO_DB.loadNotes(activeId, wfId).then((row) => {
@@ -316,7 +323,7 @@ function InvestigationWorkspace({ findingId, wfId, onInvestigation, user }) {
   };
 
   const handleSave = async () => {
-    if (!window.LEO_DB) return;
+    if (!window.LEO_DB || demo) return;
     setSaving(true);
     const userName = user ? user.name : null;
     const saved = await window.LEO_DB.saveNotes({
@@ -426,6 +433,7 @@ function InvestigationWorkspace({ findingId, wfId, onInvestigation, user }) {
               saving={saving}
               savedInfo={savedInfo}
               onSave={handleSave}
+              demo={demo}
             />
           </div>
         </div>

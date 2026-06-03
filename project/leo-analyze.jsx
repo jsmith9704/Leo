@@ -11,7 +11,7 @@ const STRUCTURED_TEMPLATE =
   "CURRENT STATUS / AUDIT:\n\n";
 
 // ── Intake screen ─────────────────────────────────────────────────────────────
-function AnalyzeCase({ onOpenCase, user }) {
+function AnalyzeCase({ onOpenCase, user, demo }) {
   const [text, setText] = useStateAn("");
   const [showStructured, setShowStructured] = useStateAn(false);
   const [structured, setStructured] = useStateAn(STRUCTURED_TEMPLATE);
@@ -21,6 +21,7 @@ function AnalyzeCase({ onOpenCase, user }) {
   const [loadingRecent, setLoadingRecent] = useStateAn(true);
 
   useEffectAn(() => {
+    if (demo) { setLoadingRecent(false); return; } // no DB reads in public demo
     window.LEO_DB.loadCases().then((rows) => {
       setRecent(rows || []);
       setLoadingRecent(false);
@@ -47,6 +48,41 @@ function AnalyzeCase({ onOpenCase, user }) {
       setBusy(false);
     }
   };
+
+  if (demo) {
+    return (
+      <div className="page fade-in">
+        <div className="page-head">
+          <div className="eyebrow">Analyze case</div>
+          <h1 className="page-title">Submit a case for continuity analysis</h1>
+          <p style={{ margin: "8px 0 0", color: "var(--ink-3)", fontSize: 13.5, lineHeight: 1.55, maxWidth: 680 }}>
+            Paste raw case material — an encounter note, referral order, in-basket messages, a discharge
+            summary, scheduling or audit records. LEO detects continuity breaks, scores the six
+            dimensions, links the evidence, and suggests failure archetypes.
+          </p>
+        </div>
+        <div className="panel" style={{ padding: "30px 28px", maxWidth: 580 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 11, display: "grid", placeItems: "center",
+            background: "var(--surface-2)", border: "1px solid var(--border)", marginBottom: 16,
+          }}>
+            <Ic name="shield" size={20} />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>Pilot access required</div>
+          <p style={{ margin: 0, color: "var(--ink-3)", fontSize: 13, lineHeight: 1.6 }}>
+            Live case analysis is part of the LEO pilot. This public demo shows LEO's full interface and a
+            worked synthetic example — but submitting a new case and running AI analysis are disabled here.
+            Request pilot access to analyze your own de-identified cases.
+          </p>
+          <span style={{
+            display: "inline-block", marginTop: 16, fontFamily: "var(--mono)", fontSize: 11,
+            fontWeight: 600, color: "var(--accent)", border: "1px solid var(--accent)",
+            borderRadius: 6, padding: "4px 10px",
+          }}>Coming soon · Pilot access required</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page fade-in">

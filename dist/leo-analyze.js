@@ -10,7 +10,8 @@ const STRUCTURED_TEMPLATE = "ENCOUNTER / VISIT NOTE:\n\n\n" + "REFERRAL / ORDER:
 // ── Intake screen ─────────────────────────────────────────────────────────────
 function AnalyzeCase({
   onOpenCase,
-  user
+  user,
+  demo
 }) {
   const [text, setText] = useStateAn("");
   const [showStructured, setShowStructured] = useStateAn(false);
@@ -20,6 +21,10 @@ function AnalyzeCase({
   const [recent, setRecent] = useStateAn([]);
   const [loadingRecent, setLoadingRecent] = useStateAn(true);
   useEffectAn(() => {
+    if (demo) {
+      setLoadingRecent(false);
+      return;
+    } // no DB reads in public demo
     window.LEO_DB.loadCases().then(rows => {
       setRecent(rows || []);
       setLoadingRecent(false);
@@ -44,6 +49,71 @@ function AnalyzeCase({
       setBusy(false);
     }
   };
+  if (demo) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "page fade-in"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "page-head"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "eyebrow"
+    }, "Analyze case"), /*#__PURE__*/React.createElement("h1", {
+      className: "page-title"
+    }, "Submit a case for continuity analysis"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "8px 0 0",
+        color: "var(--ink-3)",
+        fontSize: 13.5,
+        lineHeight: 1.55,
+        maxWidth: 680
+      }
+    }, "Paste raw case material \u2014 an encounter note, referral order, in-basket messages, a discharge summary, scheduling or audit records. LEO detects continuity breaks, scores the six dimensions, links the evidence, and suggests failure archetypes.")), /*#__PURE__*/React.createElement("div", {
+      className: "panel",
+      style: {
+        padding: "30px 28px",
+        maxWidth: 580
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 44,
+        height: 44,
+        borderRadius: 11,
+        display: "grid",
+        placeItems: "center",
+        background: "var(--surface-2)",
+        border: "1px solid var(--border)",
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement(Ic, {
+      name: "shield",
+      size: 20
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        fontWeight: 700,
+        color: "var(--ink)",
+        marginBottom: 8
+      }
+    }, "Pilot access required"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: 0,
+        color: "var(--ink-3)",
+        fontSize: 13,
+        lineHeight: 1.6
+      }
+    }, "Live case analysis is part of the LEO pilot. This public demo shows LEO's full interface and a worked synthetic example \u2014 but submitting a new case and running AI analysis are disabled here. Request pilot access to analyze your own de-identified cases."), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-block",
+        marginTop: 16,
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--accent)",
+        border: "1px solid var(--accent)",
+        borderRadius: 6,
+        padding: "4px 10px"
+      }
+    }, "Coming soon \xB7 Pilot access required")));
+  }
   return /*#__PURE__*/React.createElement("div", {
     className: "page fade-in"
   }, /*#__PURE__*/React.createElement("div", {

@@ -28,7 +28,7 @@ function useLeoTweaks(t) {
   }, [t.accent, t.density, t.panelTone]);
 }
 
-function Sidebar({ view, go, profile, session, onSignOut }) {
+function Sidebar({ view, go, profile, session, onSignOut, demo }) {
   const { ROLLUP } = window.LEO_DATA;
   const item = (key, icon, label, count) => (
     <button className={"nav-item" + (view === key ? " active" : "")} onClick={() => go(key)}>
@@ -75,7 +75,7 @@ function Sidebar({ view, go, profile, session, onSignOut }) {
           <button
             onClick={onSignOut}
             className="icon-btn"
-            title="Sign out"
+            title={demo ? "Exit demo · sign in" : "Sign out"}
             style={{ marginLeft: "auto", flexShrink: 0 }}
           >
             <Ic name="arrowL" />
@@ -104,6 +104,29 @@ function Topbar({ crumbs }) {
   );
 }
 
+const DEMO_PROFILE = { name: "Demo visitor", role: "Public demo" };
+
+function DemoBanner({ onSignIn }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12, padding: "8px 18px",
+      background: "var(--surface-2)", borderBottom: "1px solid var(--border)",
+    }}>
+      <span style={{
+        fontFamily: "var(--mono)", fontWeight: 700, fontSize: 10, letterSpacing: "0.08em",
+        textTransform: "uppercase", color: "var(--accent)",
+        border: "1px solid var(--accent)", borderRadius: 5, padding: "2px 7px", flexShrink: 0,
+      }}>Public demo</span>
+      <span style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.4 }}>
+        Exploring synthetic sample data. Case analysis, saved notes, and submission require pilot access.
+      </span>
+      <button className="btn" onClick={onSignIn} style={{ marginLeft: "auto", flexShrink: 0, padding: "5px 13px", fontSize: 12 }}>
+        <Ic name="arrowR" size={13} /> Sign in
+      </button>
+    </div>
+  );
+}
+
 function App() {
   // route: { name: 'list' | 'detail' | 'inv' | 'workspace' | 'analyze' | 'case', wfId, findingId, caseId }
   const [route, setRoute] = useStateA({ name: "list" });
@@ -114,6 +137,7 @@ function App() {
   const [session, setSession] = useStateA(null);
   const [profile, setProfile] = useStateA(null);
   const [authLoading, setAuthLoading] = useStateA(true);
+  const [demoMode, setDemoMode] = useStateA(false); // public demo: no session, read-only
 
   useEffectA(() => {
     // Load initial session
@@ -151,9 +175,13 @@ function App() {
     );
   }
 
-  if (!session) {
-    return <LoginScreen />;
+  if (!session && !demoMode) {
+    return <LoginScreen onEnterDemo={() => setDemoMode(true)} />;
   }
+
+  // Public demo mode: no authenticated session, write features gated.
+  const demo = !session;
+  const effectiveProfile = profile || (demo ? DEMO_PROFILE : null);
 
   const openWorkflow = (wfId) => setRoute({ name: "detail", wfId });
   const openInvestigation = (findingId) => setRoute({ name: "inv", wfId: route.wfId || "WF-2287", findingId });
@@ -179,11 +207,11 @@ function App() {
       { label: route.wfId, onClick: () => openWorkflow(route.wfId) },
       { label: "Investigation" },
     ];
-    body = <Investigation findingId={route.findingId} wfId={route.wfId} onBack={() => openWorkflow(route.wfId)} onWorkspace={openWorkspace} user={profile} />;
+    body = <Investigation findingId={route.findingId} wfId={route.wfId} onBack={() => openWorkflow(route.wfId)} onWorkspace={openWorkspace} user={effectiveProfile} />;
   } else if (route.name === "analyze") {
     navView = "analyze";
     crumbs = [{ label: "Analyze case" }];
-    body = <AnalyzeCase onOpenCase={openCase} user={profile} />;
+    body = <AnalyzeCase onOpenCase={openCase} user={effectiveProfile} demo={demo} />;
   } else if (route.name === "case") {
     navView = "analyze";
     crumbs = [{ label: "Analyze case", onClick: goAnalyze }, { label: "Analysis" }];
@@ -196,7 +224,7 @@ function App() {
       { label: "Investigation", onClick: () => openInvestigation(route.findingId) },
       { label: "Workspace" },
     ];
-    body = <InvestigationWorkspace findingId={route.findingId} wfId={route.wfId} onInvestigation={() => openInvestigation(route.findingId)} user={profile} />;
+    body = <InvestigationWorkspace findingId={route.findingId} wfId={route.wfId} onInvestigation={() => openInvestigation(route.findingId)} user={effectiveProfile} demo={demo} />;
   }
 
   // sidebar nav: map some entries to list, detail-focus to deep workflow
@@ -209,8 +237,10 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar view={navView} go={go} profile={profile} session={session} onSignOut={() => window.LEO_DB.signOut()} />
+      <Sidebar view={navView} go={go} profile={effectiveProfile} session={session} demo={demo}
+        onSignOut={demo ? () => setDemoMode(false) : () => window.LEO_DB.signOut()} />
       <div className="main">
+        {demo && <DemoBanner onSignIn={() => setDemoMode(false)} />}
         <Topbar crumbs={crumbs} />
         <div className="scroll">{body}</div>
       </div>

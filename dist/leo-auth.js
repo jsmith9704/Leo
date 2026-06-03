@@ -342,15 +342,19 @@ function RequestAccessForm({
     }
   }, "\u2190 Back to sign in")));
 }
-function LoginScreen() {
+function LoginScreen({
+  onEnterDemo
+}) {
   const [mode, setMode] = useStateLogin("signin"); // "signin" | "request"
 
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
+      gap: 16,
       background: "var(--bg)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -359,6 +363,29 @@ function LoginScreen() {
     onRequestAccess: () => setMode("request")
   }) : /*#__PURE__*/React.createElement(RequestAccessForm, {
     onBack: () => setMode("signin")
-  })));
+  })), onEnterDemo && /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 360,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onEnterDemo,
+    className: "btn",
+    style: {
+      width: "100%",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement(Ic, {
+    name: "grid",
+    size: 14
+  }), " Explore the public demo"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-3)",
+      marginTop: 9,
+      fontFamily: "var(--mono)",
+      lineHeight: 1.5
+    }
+  }, "No account needed \xB7 synthetic sample data \xB7 read-only")));
 }
 window.LoginScreen = LoginScreen;

@@ -54,7 +54,8 @@ function Sidebar({
   go,
   profile,
   session,
-  onSignOut
+  onSignOut,
+  demo
 }) {
   const {
     ROLLUP
@@ -99,7 +100,7 @@ function Sidebar({
   }, displayRole))), onSignOut && /*#__PURE__*/React.createElement("button", {
     onClick: onSignOut,
     className: "icon-btn",
-    title: "Sign out",
+    title: demo ? "Exit demo · sign in" : "Sign out",
     style: {
       marginLeft: "auto",
       flexShrink: 0
@@ -136,6 +137,55 @@ function Topbar({
     name: "bell"
   })));
 }
+const DEMO_PROFILE = {
+  name: "Demo visitor",
+  role: "Public demo"
+};
+function DemoBanner({
+  onSignIn
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "8px 18px",
+      background: "var(--surface-2)",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontWeight: 700,
+      fontSize: 10,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: "var(--accent)",
+      border: "1px solid var(--accent)",
+      borderRadius: 5,
+      padding: "2px 7px",
+      flexShrink: 0
+    }
+  }, "Public demo"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--ink-3)",
+      lineHeight: 1.4
+    }
+  }, "Exploring synthetic sample data. Case analysis, saved notes, and submission require pilot access."), /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: onSignIn,
+    style: {
+      marginLeft: "auto",
+      flexShrink: 0,
+      padding: "5px 13px",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement(Ic, {
+    name: "arrowR",
+    size: 13
+  }), " Sign in"));
+}
 function App() {
   // route: { name: 'list' | 'detail' | 'inv' | 'workspace' | 'analyze' | 'case', wfId, findingId, caseId }
   const [route, setRoute] = useStateA({
@@ -148,6 +198,8 @@ function App() {
   const [session, setSession] = useStateA(null);
   const [profile, setProfile] = useStateA(null);
   const [authLoading, setAuthLoading] = useStateA(true);
+  const [demoMode, setDemoMode] = useStateA(false); // public demo: no session, read-only
+
   useEffectA(() => {
     // Load initial session
     window.LEO_DB.getSession().then(async sess => {
@@ -189,9 +241,15 @@ function App() {
       }
     }, "Loading\u2026");
   }
-  if (!session) {
-    return /*#__PURE__*/React.createElement(LoginScreen, null);
+  if (!session && !demoMode) {
+    return /*#__PURE__*/React.createElement(LoginScreen, {
+      onEnterDemo: () => setDemoMode(true)
+    });
   }
+
+  // Public demo mode: no authenticated session, write features gated.
+  const demo = !session;
+  const effectiveProfile = profile || (demo ? DEMO_PROFILE : null);
   const openWorkflow = wfId => setRoute({
     name: "detail",
     wfId
@@ -254,7 +312,7 @@ function App() {
       wfId: route.wfId,
       onBack: () => openWorkflow(route.wfId),
       onWorkspace: openWorkspace,
-      user: profile
+      user: effectiveProfile
     });
   } else if (route.name === "analyze") {
     navView = "analyze";
@@ -263,7 +321,8 @@ function App() {
     }];
     body = /*#__PURE__*/React.createElement(AnalyzeCase, {
       onOpenCase: openCase,
-      user: profile
+      user: effectiveProfile,
+      demo: demo
     });
   } else if (route.name === "case") {
     navView = "analyze";
@@ -295,7 +354,8 @@ function App() {
       findingId: route.findingId,
       wfId: route.wfId,
       onInvestigation: () => openInvestigation(route.findingId),
-      user: profile
+      user: effectiveProfile,
+      demo: demo
     });
   }
 
@@ -308,12 +368,15 @@ function App() {
   }, /*#__PURE__*/React.createElement(Sidebar, {
     view: navView,
     go: go,
-    profile: profile,
+    profile: effectiveProfile,
     session: session,
-    onSignOut: () => window.LEO_DB.signOut()
+    demo: demo,
+    onSignOut: demo ? () => setDemoMode(false) : () => window.LEO_DB.signOut()
   }), /*#__PURE__*/React.createElement("div", {
     className: "main"
-  }, /*#__PURE__*/React.createElement(Topbar, {
+  }, demo && /*#__PURE__*/React.createElement(DemoBanner, {
+    onSignIn: () => setDemoMode(false)
+  }), /*#__PURE__*/React.createElement(Topbar, {
     crumbs: crumbs
   }), /*#__PURE__*/React.createElement("div", {
     className: "scroll"
