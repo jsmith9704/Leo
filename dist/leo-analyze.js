@@ -30,6 +30,16 @@ function AnalyzeCase({
       setLoadingRecent(false);
     }).catch(() => setLoadingRecent(false));
   }, []);
+  // Load the Tally popup script when the public demo gate is shown.
+  useEffectAn(() => {
+    if (!demo) return;
+    if (document.getElementById("tally-embed-script")) return;
+    var s = document.createElement("script");
+    s.id = "tally-embed-script";
+    s.src = "https://tally.so/widgets/embed.js";
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
   const canAnalyze = text.trim().length >= 20 && !busy;
   const handleAnalyze = async () => {
     if (!canAnalyze) return;
@@ -100,19 +110,27 @@ function AnalyzeCase({
         fontSize: 13,
         lineHeight: 1.6
       }
-    }, "Live case analysis is part of the LEO pilot. This public demo shows LEO's full interface and a worked synthetic example \u2014 but submitting a new case and running AI analysis are disabled here. Request pilot access to analyze your own de-identified cases."), /*#__PURE__*/React.createElement("span", {
+    }, "Live case analysis is part of the LEO pilot. This public demo shows LEO's full interface and a worked synthetic example \u2014 but submitting a new case and running AI analysis are disabled here. Request pilot access to analyze your own de-identified cases."), /*#__PURE__*/React.createElement("button", {
+      className: "btn primary",
+      onClick: function () {
+        try {
+          if (window.Tally && typeof window.Tally.openPopup === "function") {
+            window.Tally.openPopup("9q4oq1", {
+              layout: "modal",
+              width: 540
+            });
+            return;
+          }
+        } catch (e) {}
+        window.open("https://tally.so/r/9q4oq1", "_blank", "noopener");
+      },
       style: {
-        display: "inline-block",
-        marginTop: 16,
-        fontFamily: "var(--mono)",
-        fontSize: 11,
-        fontWeight: 600,
-        color: "var(--accent)",
-        border: "1px solid var(--accent)",
-        borderRadius: 6,
-        padding: "4px 10px"
+        marginTop: 16
       }
-    }, "Coming soon \xB7 Pilot access required")));
+    }, /*#__PURE__*/React.createElement(Ic, {
+      name: "spark",
+      size: 14
+    }), " Request pilot access")));
   }
   return /*#__PURE__*/React.createElement("div", {
     className: "page fade-in"
