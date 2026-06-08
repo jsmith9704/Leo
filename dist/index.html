@@ -10,11 +10,46 @@
 <link rel="stylesheet" href="leo.css" />
 </head>
 <body>
+<script>try{document.body.setAttribute("data-theme",localStorage.getItem("leo-theme")==="dark"?"dark":"light");}catch(e){document.body.setAttribute("data-theme","light");}</script>
 <div id="root"></div>
+
+<style>
+  #leo-theme-toggle{position:fixed;right:18px;bottom:18px;z-index:50;display:inline-flex;align-items:center;gap:7px;
+    padding:8px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);
+    font-family:var(--sans);font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);
+    transition:background .15s,border-color .15s,transform .12s}
+  #leo-theme-toggle:hover{background:var(--surface-2);transform:translateY(-1px)}
+  #leo-theme-toggle svg{width:15px;height:15px;flex:none}
+</style>
+<button id="leo-theme-toggle" aria-label="Toggle light and dark theme" title="Toggle theme">
+  <svg id="leo-ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <svg id="leo-ic-sun" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  <span id="leo-theme-label">Dark</span>
+</button>
+<script>
+  (function(){
+    function apply(t){
+      document.body.setAttribute("data-theme",t);
+      var dark=t==="dark";
+      var m=document.getElementById("leo-ic-moon"),s=document.getElementById("leo-ic-sun"),l=document.getElementById("leo-theme-label");
+      if(m){m.style.display=dark?"none":"";}
+      if(s){s.style.display=dark?"":"none";}
+      if(l){l.textContent=dark?"Light":"Dark";}
+    }
+    var saved="light";
+    try{if(localStorage.getItem("leo-theme")==="dark")saved="dark";}catch(e){}
+    apply(saved);
+    var btn=document.getElementById("leo-theme-toggle");
+    if(btn){btn.addEventListener("click",function(){
+      var next=document.body.getAttribute("data-theme")==="dark"?"light":"dark";
+      apply(next);
+      try{localStorage.setItem("leo-theme",next);}catch(e){}
+    });}
+  })();
+</script>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="leo-data.js"></script>
 <script src="leo-db.js"></script>
