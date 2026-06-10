@@ -187,7 +187,7 @@ function DemoBanner({
   }), " Sign in"));
 }
 function App() {
-  // route: { name: 'list' | 'detail' | 'inv' | 'workspace' | 'analyze' | 'case', wfId, findingId, caseId }
+  // route: { name: 'list' | 'detail' | 'inv' | 'workspace' | 'analyze' | 'case' | 'pulse', wfId, findingId, caseId }
   const [route, setRoute] = useStateA({
     name: "list"
   });
@@ -198,11 +198,8 @@ function App() {
   const [session, setSession] = useStateA(null);
   const [profile, setProfile] = useStateA(null);
   const [authLoading, setAuthLoading] = useStateA(true);
-  // Public demo is the default front door: visitors land in the read-only synthetic
-  // prototype with no login wall. Login still reachable via the "Sign in" affordance.
   const [demoMode, setDemoMode] = useStateA(true);
   useEffectA(() => {
-    // Load initial session
     window.LEO_DB.getSession().then(async sess => {
       setSession(sess);
       if (sess) {
@@ -212,7 +209,6 @@ function App() {
       setAuthLoading(false);
     }).catch(() => setAuthLoading(false));
 
-    // Subscribe to auth changes
     const {
       data: {
         subscription
@@ -248,126 +244,65 @@ function App() {
     });
   }
 
-  // Public demo mode: no authenticated session, write features gated.
   const demo = !session;
   const effectiveProfile = profile || (demo ? DEMO_PROFILE : null);
-  const openWorkflow = wfId => setRoute({
-    name: "detail",
-    wfId
-  });
-  const openInvestigation = findingId => setRoute({
-    name: "inv",
-    wfId: route.wfId || "WF-2287",
-    findingId
-  });
-  const openWorkspace = findingId => setRoute({
-    name: "workspace",
-    wfId: route.wfId || "WF-2287",
-    findingId
-  });
-  const goAnalyze = () => setRoute({
-    name: "analyze"
-  });
-  const openCase = caseId => setRoute({
-    name: "case",
-    caseId
-  });
-  const goList = () => setRoute({
-    name: "list"
-  });
+  const openWorkflow = wfId => setRoute({ name: "detail", wfId });
+  const openInvestigation = findingId => setRoute({ name: "inv", wfId: route.wfId || "WF-2287", findingId });
+  const openWorkspace = findingId => setRoute({ name: "workspace", wfId: route.wfId || "WF-2287", findingId });
+  const goAnalyze = () => setRoute({ name: "analyze" });
+  const openCase = caseId => setRoute({ name: "case", caseId });
+  const goList = () => setRoute({ name: "list" });
+  const goSignals = () => setRoute({ name: "pulse" });
+
   let crumbs, body, navView;
+
   if (route.name === "list") {
     navView = "list";
-    crumbs = [{
-      label: "Continuity overview"
-    }];
-    body = /*#__PURE__*/React.createElement(WorkflowsList, {
-      onOpen: openWorkflow
-    });
+    crumbs = [{ label: "Continuity overview" }];
+    body = /*#__PURE__*/React.createElement(WorkflowsList, { onOpen: openWorkflow });
   } else if (route.name === "detail") {
     navView = "list2";
     const wf = window.LEO_DATA.WORKFLOWS.find(w => w.id === route.wfId);
-    crumbs = [{
-      label: "Workflows",
-      onClick: goList
-    }, {
-      label: wf ? wf.id : route.wfId
-    }];
-    body = /*#__PURE__*/React.createElement(WorkflowDetail, {
-      id: route.wfId,
-      onInvestigate: openInvestigation
-    });
+    crumbs = [{ label: "Workflows", onClick: goList }, { label: wf ? wf.id : route.wfId }];
+    body = /*#__PURE__*/React.createElement(WorkflowDetail, { id: route.wfId, onInvestigate: openInvestigation });
   } else if (route.name === "inv") {
     navView = "invq";
-    crumbs = [{
-      label: "Workflows",
-      onClick: goList
-    }, {
-      label: route.wfId,
-      onClick: () => openWorkflow(route.wfId)
-    }, {
-      label: "Investigation"
-    }];
-    body = /*#__PURE__*/React.createElement(Investigation, {
-      findingId: route.findingId,
-      wfId: route.wfId,
-      onBack: () => openWorkflow(route.wfId),
-      onWorkspace: openWorkspace,
-      user: effectiveProfile
-    });
+    crumbs = [{ label: "Workflows", onClick: goList }, { label: route.wfId, onClick: () => openWorkflow(route.wfId) }, { label: "Investigation" }];
+    body = /*#__PURE__*/React.createElement(Investigation, { findingId: route.findingId, wfId: route.wfId, onBack: () => openWorkflow(route.wfId), onWorkspace: openWorkspace, user: effectiveProfile });
   } else if (route.name === "analyze") {
     navView = "analyze";
-    crumbs = [{
-      label: "Analyze case"
-    }];
-    body = /*#__PURE__*/React.createElement(AnalyzeCase, {
-      onOpenCase: openCase,
-      user: effectiveProfile,
-      demo: demo
-    });
+    crumbs = [{ label: "Analyze case" }];
+    body = /*#__PURE__*/React.createElement(AnalyzeCase, { onOpenCase: openCase, user: effectiveProfile, demo: demo });
   } else if (route.name === "case") {
     navView = "analyze";
-    crumbs = [{
-      label: "Analyze case",
-      onClick: goAnalyze
-    }, {
-      label: "Analysis"
-    }];
-    body = /*#__PURE__*/React.createElement(AnalyzedCase, {
-      caseId: route.caseId,
-      onBack: goAnalyze
-    });
-    } else if (route.name === "pulse") {
-  navView = "pulse";
-  crumbs = [{ label: "Signals" }];
-  body = React.createElement("div", { className: "page fade-in" }, React.createElement("div", { className: "page-head" }, React.createElement("div", { className: "eyebrow" }, "Signals"), React.createElement("h1", { className: "page-title" }, "Signals"), React.createElement("p", { style: { margin: "8px 0 0", color: "var(--ink-3)", fontSize: 13.5, lineHeight: 1.55, maxWidth: 680 } }, "Signals will surface emerging continuity patterns across workflows — early indicators before breaks become critical. Coming soon.")));
+    crumbs = [{ label: "Analyze case", onClick: goAnalyze }, { label: "Analysis" }];
+    body = /*#__PURE__*/React.createElement(AnalyzedCase, { caseId: route.caseId, onBack: goAnalyze });
+  } else if (route.name === "pulse") {
+    navView = "pulse";
+    crumbs = [{ label: "Signals" }];
+    body = /*#__PURE__*/React.createElement("div", { className: "page fade-in" },
+      /*#__PURE__*/React.createElement("div", { className: "page-head" },
+        /*#__PURE__*/React.createElement("div", { className: "eyebrow" }, "Signals"),
+        /*#__PURE__*/React.createElement("h1", { className: "page-title" }, "Signals"),
+        /*#__PURE__*/React.createElement("p", {
+          style: { margin: "8px 0 0", color: "var(--ink-3)", fontSize: 13.5, lineHeight: 1.55, maxWidth: 680 }
+        }, "Signals will surface emerging continuity patterns across workflows \u2014 early indicators before breaks become critical. Coming soon.")
+      )
+    );
   } else {
     navView = "invq";
-    crumbs = [{
-      label: "Workflows",
-      onClick: goList
-    }, {
-      label: route.wfId,
-      onClick: () => openWorkflow(route.wfId)
-    }, {
-      label: "Investigation",
-      onClick: () => openInvestigation(route.findingId)
-    }, {
-      label: "Workspace"
-    }];
-    body = /*#__PURE__*/React.createElement(InvestigationWorkspace, {
-      findingId: route.findingId,
-      wfId: route.wfId,
-      onInvestigation: () => openInvestigation(route.findingId),
-      user: effectiveProfile,
-      demo: demo
-    });
+    crumbs = [{ label: "Workflows", onClick: goList }, { label: route.wfId, onClick: () => openWorkflow(route.wfId) }, { label: "Investigation", onClick: () => openInvestigation(route.findingId) }, { label: "Workspace" }];
+    body = /*#__PURE__*/React.createElement(InvestigationWorkspace, { findingId: route.findingId, wfId: route.wfId, onInvestigation: () => openInvestigation(route.findingId), user: effectiveProfile, demo: demo });
   }
 
-  // sidebar nav: map some entries to list, detail-focus to deep workflow
   const go = key => {
-    if (key === "list") goList();else if (key === "analyze") goAnalyze();else if (key === "pulse") setRoute({ name: "pulse" });else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" ) goList();else if (key === "invq") openWorkflow("WF-2287");
+    if (key === "list") goList();
+    else if (key === "analyze") goAnalyze();
+    else if (key === "pulse") goSignals();
+    else if (key === "list2" || key === "qi" || key === "dims" || key === "rec") goList();
+    else if (key === "invq") openWorkflow("WF-2287");
   };
+
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement(Sidebar, {
@@ -385,25 +320,12 @@ function App() {
     crumbs: crumbs
   }), /*#__PURE__*/React.createElement("div", {
     className: "scroll"
-  }, body)), /*#__PURE__*/React.createElement(TweaksPanel, null, /*#__PURE__*/React.createElement(TweakSection, {
-    label: "Appearance"
-  }), /*#__PURE__*/React.createElement(TweakRadio, {
-    label: "Accent",
-    value: t.accent,
-    options: ["Clinical blue", "Teal", "Indigo"],
-    onChange: v => setTweak("accent", v)
-  }), /*#__PURE__*/React.createElement(TweakRadio, {
-    label: "Density",
-    value: t.density,
-    options: ["compact", "regular", "comfy"],
-    onChange: v => setTweak("density", v)
-  }), /*#__PURE__*/React.createElement(TweakSection, {
-    label: "Data panels"
-  }), /*#__PURE__*/React.createElement(TweakRadio, {
-    label: "Tone",
-    value: t.panelTone,
-    options: ["Slate", "Navy", "Graphite"],
-    onChange: v => setTweak("panelTone", v)
-  })));
+  }, body)), /*#__PURE__*/React.createElement(TweaksPanel, null,
+    /*#__PURE__*/React.createElement(TweakSection, { label: "Appearance" }),
+    /*#__PURE__*/React.createElement(TweakRadio, { label: "Accent", value: t.accent, options: ["Clinical blue", "Teal", "Indigo"], onChange: v => setTweak("accent", v) }),
+    /*#__PURE__*/React.createElement(TweakRadio, { label: "Density", value: t.density, options: ["compact", "regular", "comfy"], onChange: v => setTweak("density", v) }),
+    /*#__PURE__*/React.createElement(TweakSection, { label: "Data panels" }),
+    /*#__PURE__*/React.createElement(TweakRadio, { label: "Tone", value: t.panelTone, options: ["Slate", "Navy", "Graphite"], onChange: v => setTweak("panelTone", v) })
+  ));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
