@@ -59,79 +59,295 @@ function AnalyzeCase({
       setBusy(false);
     }
   };
+
+  // ── DEMO GATE ───────────────────────────────────────────────────────────────
   if (demo) {
-    return /*#__PURE__*/React.createElement("div", {
-      className: "page fade-in"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "page-head"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "eyebrow"
-    }, "Analyze case"), /*#__PURE__*/React.createElement("h1", {
-      className: "page-title"
-    }, "Submit a case for continuity analysis"), /*#__PURE__*/React.createElement("p", {
-      style: {
-        margin: "8px 0 0",
-        color: "var(--ink-3)",
-        fontSize: 13.5,
-        lineHeight: 1.55,
-        maxWidth: 680
-      }
-    }, "Paste raw case material \u2014 an encounter note, referral order, in-basket messages, a discharge summary, scheduling or audit records. LEO detects continuity breaks, scores the six dimensions, links the evidence, and suggests failure archetypes.")), /*#__PURE__*/React.createElement("div", {
-      className: "panel",
-      style: {
-        padding: "30px 28px",
-        maxWidth: 580
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 44,
-        height: 44,
-        borderRadius: 11,
-        display: "grid",
-        placeItems: "center",
-        background: "var(--surface-2)",
-        border: "1px solid var(--border)",
-        marginBottom: 16
-      }
-    }, /*#__PURE__*/React.createElement(Ic, {
-      name: "shield",
-      size: 20
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 16,
-        fontWeight: 700,
-        color: "var(--ink)",
-        marginBottom: 8
-      }
-    }, "Pilot access required"), /*#__PURE__*/React.createElement("p", {
-      style: {
-        margin: 0,
-        color: "var(--ink-3)",
-        fontSize: 13,
-        lineHeight: 1.6
-      }
-    }, "Live case analysis is part of the LEO pilot. This public demo shows LEO's full interface and a worked synthetic example \u2014 but submitting a new case and running AI analysis are disabled here. Request pilot access to analyze your own de-identified cases."), /*#__PURE__*/React.createElement("button", {
-      className: "btn primary",
-      onClick: function () {
-        try {
-          if (window.Tally && typeof window.Tally.openPopup === "function") {
-            window.Tally.openPopup("9q4oq1", {
-              layout: "modal",
-              width: 540
-            });
-            return;
-          }
-        } catch (e) {}
-        window.open("https://tally.so/r/9q4oq1", "_blank", "noopener");
+    const DEMO_SCENARIOS = [
+      {
+        id: "quiet-guardrail",
+        icon: "shield",
+        eyebrow: "Quiet Guardrail · Human Middleware",
+        title: "The employee who held the workflow together",
+        description:
+          "One person knew the unwritten rules that kept referrals moving. No protocol captured it. No one noticed until she gave notice.",
+        tag: "Ownership · Verification · Intent",
       },
-      style: {
-        marginTop: 16
-      }
-    }, /*#__PURE__*/React.createElement(Ic, {
-      name: "spark",
-      size: 14
-    }), " Request pilot access")));
+    ];
+
+    return React.createElement(
+      "div",
+      { className: "page fade-in" },
+
+      // ── Page header
+      React.createElement(
+        "div",
+        { className: "page-head" },
+        React.createElement("div", { className: "eyebrow" }, "Analyze case"),
+        React.createElement(
+          "h1",
+          { className: "page-title" },
+          "Submit a scenario for continuity analysis"
+        ),
+        React.createElement(
+          "p",
+          {
+            style: {
+              margin: "8px 0 0",
+              color: "var(--ink-3)",
+              fontSize: 13.5,
+              lineHeight: 1.55,
+              maxWidth: 680,
+            },
+          },
+          "Paste a de-identified scenario \u2014 a workflow description, handoff note, discharge summary, referral sequence, or any case material with names and identifiers removed. LEO detects continuity breaks, scores the six dimensions, links the evidence, and suggests failure archetypes."
+        )
+      ),
+
+      // ── Demo scenario launcher
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            marginBottom: 24,
+            maxWidth: 680,
+          },
+        },
+        React.createElement(
+          "div",
+          {
+            className: "section-label",
+            style: { marginTop: 0, marginBottom: 4 },
+          },
+          React.createElement(Ic, { name: "spark", size: 13 }),
+          " Try a worked example"
+        ),
+        DEMO_SCENARIOS.map((s) =>
+          React.createElement(
+            "button",
+            {
+              key: s.id,
+              onClick: () =>
+                window.dispatchEvent(
+                  new CustomEvent("leo:open-demo-scenario", { detail: s.id })
+                ),
+              style: {
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 6,
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                borderRadius: 11,
+                padding: "14px 16px",
+                transition: "border-color 0.15s, background 0.15s",
+              },
+              onMouseEnter: (e) => {
+                e.currentTarget.style.borderColor = "var(--accent)";
+                e.currentTarget.style.background = "var(--surface-3, var(--surface-2))";
+              },
+              onMouseLeave: (e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.background = "var(--surface-2)";
+              },
+            },
+            React.createElement(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                },
+              },
+              React.createElement(
+                "div",
+                {
+                  style: {
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    display: "grid",
+                    placeItems: "center",
+                    background: "var(--accent-subtle, oklch(0.55 0.18 85 / 0.12))",
+                    border: "1px solid var(--accent-border, oklch(0.55 0.18 85 / 0.25))",
+                    flexShrink: 0,
+                  },
+                },
+                React.createElement(Ic, {
+                  name: s.icon,
+                  size: 15,
+                  style: { color: "var(--accent)" },
+                })
+              ),
+              React.createElement(
+                "div",
+                { style: { flex: 1, minWidth: 0 } },
+                React.createElement(
+                  "div",
+                  {
+                    style: {
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: "var(--accent)",
+                      fontFamily: "var(--mono)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      marginBottom: 2,
+                    },
+                  },
+                  s.eyebrow
+                ),
+                React.createElement(
+                  "div",
+                  {
+                    style: {
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      color: "var(--ink)",
+                      lineHeight: 1.3,
+                    },
+                  },
+                  s.title
+                )
+              ),
+              React.createElement(Ic, {
+                name: "arrowR",
+                size: 14,
+                style: { color: "var(--ink-4)", flexShrink: 0 },
+              })
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: 12.5,
+                  color: "var(--ink-3)",
+                  lineHeight: 1.55,
+                  paddingLeft: 38,
+                },
+              },
+              s.description
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  paddingLeft: 38,
+                  display: "flex",
+                  gap: 6,
+                  flexWrap: "wrap",
+                },
+              },
+              s.tag.split(" · ").map((t) =>
+                React.createElement(
+                  "span",
+                  {
+                    key: t,
+                    style: {
+                      fontSize: 10.5,
+                      fontFamily: "var(--mono)",
+                      color: "var(--ink-4)",
+                      background: "var(--surface-3, var(--surface))",
+                      border: "1px solid var(--border)",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                    },
+                  },
+                  t
+                )
+              )
+            )
+          )
+        )
+      ),
+
+      // ── Pilot access gate
+      React.createElement(
+        "div",
+        {
+          className: "panel",
+          style: { padding: "28px 28px", maxWidth: 580 },
+        },
+        React.createElement(
+          "div",
+          {
+            style: {
+              width: 44,
+              height: 44,
+              borderRadius: 11,
+              display: "grid",
+              placeItems: "center",
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              marginBottom: 16,
+            },
+          },
+          React.createElement(Ic, { name: "layers", size: 20 })
+        ),
+        React.createElement(
+          "div",
+          {
+            style: {
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--ink)",
+              marginBottom: 8,
+            },
+          },
+          "Analyze your own scenarios"
+        ),
+        React.createElement(
+          "p",
+          {
+            style: {
+              margin: 0,
+              color: "var(--ink-3)",
+              fontSize: 13,
+              lineHeight: 1.6,
+            },
+          },
+          "Pilot access lets you submit your own de-identified scenarios and run live analysis. No PHI \u2014 paste workflow descriptions, handoff notes, or case material with names and identifiers removed. Request access to get started."
+        ),
+        React.createElement(
+          "button",
+          {
+            className: "btn primary",
+            onClick: function () {
+              try {
+                if (
+                  window.Tally &&
+                  typeof window.Tally.openPopup === "function"
+                ) {
+                  window.Tally.openPopup("9q4oq1", {
+                    layout: "modal",
+                    width: 540,
+                  });
+                  return;
+                }
+              } catch (e) {}
+              window.open(
+                "https://tally.so/r/9q4oq1",
+                "_blank",
+                "noopener"
+              );
+            },
+            style: { marginTop: 18 },
+          },
+          React.createElement(Ic, { name: "spark", size: 14 }),
+          " Request pilot access"
+        )
+      )
+    );
   }
+  // ── END DEMO GATE ───────────────────────────────────────────────────────────
+
   return /*#__PURE__*/React.createElement("div", {
     className: "page fade-in"
   }, /*#__PURE__*/React.createElement("div", {
