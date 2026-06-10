@@ -337,6 +337,10 @@ function App() {
       caseId: route.caseId,
       onBack: goAnalyze
     });
+    } else if (route.name === "pulse") {
+  navView = "pulse";
+  crumbs = [{ label: "Signals" }];
+  body = React.createElement("div", { className: "page fade-in" }, React.createElement("div", { className: "page-head" }, React.createElement("div", { className: "eyebrow" }, "Signals"), React.createElement("h1", { className: "page-title" }, "Signals"), React.createElement("p", { style: { margin: "8px 0 0", color: "var(--ink-3)", fontSize: 13.5, lineHeight: 1.55, maxWidth: 680 } }, "Signals will surface emerging continuity patterns across workflows — early indicators before breaks become critical. Coming soon.")));
   } else {
     navView = "invq";
     crumbs = [{
@@ -362,7 +366,7 @@ function App() {
 
   // sidebar nav: map some entries to list, detail-focus to deep workflow
   const go = key => {
-    if (key === "list") goList();else if (key === "analyze") goAnalyze();else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" || key === "pulse") goList();else if (key === "invq") openWorkflow("WF-2287");
+    if (key === "list") goList();else if (key === "analyze") goAnalyze();else if (key === "pulse") setRoute({ name: "pulse" });else if (key === "list2" || key === "qi" || key === "dims" || key === "rec" ) goList();else if (key === "invq") openWorkflow("WF-2287");
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
